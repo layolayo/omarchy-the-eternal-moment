@@ -37,6 +37,7 @@ ApplicationWindow {
     property var viewingSession: null
     property string answerDraft: ""
     property bool isFullscreen: false
+    property bool isSidebarOpen: true
 
     property bool shareModalVisible: false
     property string sharePreviewPath: ""
@@ -190,6 +191,10 @@ ApplicationWindow {
         }
     }
 
+    function toggleSidebar() {
+        isSidebarOpen = !isSidebarOpen;
+    }
+
     function executeShellCommand(cmd) {
         try {
             var proc = Qt.createQmlObject('import Quickshell.Io 1.0; Process {}', appWindow, "shellProc_" + Date.now());
@@ -339,6 +344,16 @@ ApplicationWindow {
         }
     }
 
+    Shortcut {
+        sequence: "Ctrl+B"
+        onActivated: toggleSidebar()
+    }
+
+    Shortcut {
+        sequence: "F10"
+        onActivated: toggleSidebar()
+    }
+
     // Background Animated Starfield
     Canvas {
         id: starfieldCanvas
@@ -405,46 +420,91 @@ ApplicationWindow {
         z: 1
 
         // ==========================================
-        // LEFT SIDEBAR
+        // LEFT SIDEBAR (Sliding Drawer)
         // ==========================================
         Rectangle {
+            id: leftSidebar
             Layout.fillHeight: true
-            Layout.preferredWidth: 260
+            Layout.preferredWidth: isSidebarOpen ? 260 : 0
+            clip: true
+            visible: width > 0.5
             color: colSidebarBg
-            border.width: 1
+            border.width: width > 1 ? 1 : 0
             border.color: colBorder
 
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 20
-                spacing: 16
+            Behavior on Layout.preferredWidth {
+                NumberAnimation { duration: 240; easing.type: Easing.InOutCubic }
+            }
 
-                // App Brand
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 12
+            Item {
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                anchors.right: parent.right
+                width: 260
 
-                    Text {
-                        text: "⏳"
-                        font.pixelSize: 32
-                    }
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 20
+                    spacing: 16
 
-                    ColumnLayout {
-                        spacing: 2
+                    // App Brand with Collapse Button
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+
                         Text {
-                            text: "The Eternal Moment"
-                            color: colForeground
-                            font.pixelSize: 16
-                            font.bold: true
+                            text: "⏳"
+                            font.pixelSize: 32
                         }
-                        Text {
-                            text: "Process #4 · Ekology"
-                            color: colGold
-                            font.pixelSize: 11
-                            font.bold: true
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 2
+                            Text {
+                                text: "The Eternal Moment"
+                                color: colForeground
+                                font.pixelSize: 15
+                                font.bold: true
+                                elide: Text.ElideRight
+                                Layout.fillWidth: true
+                            }
+                            Text {
+                                text: "Process #4 · Ekology"
+                                color: colGold
+                                font.pixelSize: 11
+                                font.bold: true
+                            }
+                        }
+
+                        // Collapse Sidebar Button
+                        Rectangle {
+                            width: 28
+                            height: 28
+                            radius: 6
+                            color: collapseBtnHover.containsMouse ? "#26ffffff" : "#12ffffff"
+                            border.width: 1
+                            border.color: collapseBtnHover.containsMouse ? colCyan : "#334155"
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "◀"
+                                color: collapseBtnHover.containsMouse ? colCyan : colMuted
+                                font.pixelSize: 11
+                            }
+
+                            ToolTip.visible: collapseBtnHover.containsMouse
+                            ToolTip.text: "Slide sidebar out (Ctrl+B)"
+                            ToolTip.delay: 400
+
+                            MouseArea {
+                                id: collapseBtnHover
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: toggleSidebar()
+                            }
                         }
                     }
-                }
 
                 Rectangle {
                     Layout.fillWidth: true
@@ -595,24 +655,56 @@ ApplicationWindow {
                     }
                 }
 
-                // Fullscreen Toggle button
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: 28
-                    color: "transparent"
+                    // Quick Controls Footer (Sidebar Collapse & Fullscreen)
                     RowLayout {
-                        anchors.fill: parent
-                        Text {
-                            text: isFullscreen ? "⛶ Exit Fullscreen (F11 / Esc)" : "⛶ Fullscreen (F11)"
-                            color: colMuted
-                            font.pixelSize: 11
+                        Layout.fillWidth: true
+                        height: 28
+                        spacing: 8
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 28
+                            color: "transparent"
+                            RowLayout {
+                                anchors.fill: parent
+                                spacing: 4
+                                Text {
+                                    text: "◀ Hide (Ctrl+B)"
+                                    color: sidebarHideHover.containsMouse ? colCyan : colMuted
+                                    font.pixelSize: 11
+                                }
+                            }
+                            MouseArea {
+                                id: sidebarHideHover
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: toggleSidebar()
+                            }
                         }
-                        Item { Layout.fillWidth: true }
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: toggleFullscreen()
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: 28
+                            color: "transparent"
+                            RowLayout {
+                                anchors.fill: parent
+                                spacing: 4
+                                Item { Layout.fillWidth: true }
+                                Text {
+                                    text: isFullscreen ? "⛶ Exit" : "⛶ Fullscreen"
+                                    color: fsFooterHover.containsMouse ? colCyan : colMuted
+                                    font.pixelSize: 11
+                                }
+                            }
+                            MouseArea {
+                                id: fsFooterHover
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: toggleFullscreen()
+                            }
+                        }
                     }
                 }
             }
@@ -626,6 +718,41 @@ ApplicationWindow {
             Layout.fillWidth: true
             Layout.fillHeight: true
             color: "transparent"
+
+            // Top-Left Floating Sidebar Toggle Button (Slide In/Out)
+            Rectangle {
+                id: sidebarToggleBtn
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.margins: 16
+                width: 34
+                height: 34
+                radius: 8
+                z: 100
+                visible: !isSidebarOpen
+                color: sidebarToggleHover.containsMouse ? "#26ffffff" : "#181f38"
+                border.width: 1
+                border.color: sidebarToggleHover.containsMouse ? colCyan : "#334155"
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "☰"
+                    color: sidebarToggleHover.containsMouse ? colCyan : colForeground
+                    font.pixelSize: 16
+                }
+
+                ToolTip.visible: sidebarToggleHover.containsMouse
+                ToolTip.text: "Slide in navigation sidebar (Ctrl+B)"
+                ToolTip.delay: 400
+
+                MouseArea {
+                    id: sidebarToggleHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: toggleSidebar()
+                }
+            }
 
             // Top-Right Fullscreen / Float Quick Control
             Rectangle {
