@@ -37,6 +37,19 @@ ApplicationWindow {
     property string answerDraft: ""
     property bool isFullscreen: false
 
+    property bool shareModalVisible: false
+    property string sharePreviewPath: ""
+    property string sharePreviewUrl: ""
+    property string shareCaption: ""
+    property string canvasToastMessage: ""
+
+    Timer {
+        id: canvasToastTimer
+        interval: 4000
+        repeat: false
+        onTriggered: canvasToastMessage = ""
+    }
+
     readonly property var currentStep: (flatSteps && currentStepIndex >= 0 && currentStepIndex < flatSteps.length) ? flatSteps[currentStepIndex] : null
     readonly property int currentSet: currentStep ? currentStep.set : 1
     readonly property string currentQuestionText: currentStep ? ProcessData.formatQuestionText(currentStep, answers, flatSteps) : "Session Complete"
@@ -176,15 +189,28 @@ ApplicationWindow {
         }
     }
 
+    function executeShellCommand(cmd) {
+        try {
+            var proc = Qt.createQmlObject('import Quickshell.Io 1.0; Process {}', appWindow, "shellProc_" + Date.now());
+            proc.command = ["bash", "-c", cmd];
+            proc.running = true;
+        } catch (e) {
+            console.warn("Process not available in this environment:", e);
+        }
+    }
+
+    function showCanvasToast(msg) {
+        canvasToastMessage = msg;
+        copyStatusMessage = msg;
+        canvasToastTimer.restart();
+    }
+
     function copyReportToClipboard() {
         var target = viewingSession || Database.loadSession(activeSessionId);
         if (!target) return;
         var md = Report.generateMarkdownReport(target, flatSteps, ProcessData.questionLibrary);
-        // Use wl-copy or xclip
-        var proc = Qt.createQmlObject('import Quickshell.Io 1.0; Process {}', appWindow, "copyProc");
-        proc.command = ["bash", "-c", "printf %s " + escapeShell(md) + " | wl-copy || printf %s " + escapeShell(md) + " | xclip -selection clipboard"];
-        proc.running = true;
-        copyStatusMessage = "Full report copied to clipboard!";
+        executeShellCommand("printf %s " + escapeShell(md) + " | wl-copy || printf %s " + escapeShell(md) + " | xclip -selection clipboard");
+        showCanvasToast("Full report copied to clipboard!");
     }
 
     function exportReportToFile() {
@@ -194,17 +220,69 @@ ApplicationWindow {
         var d = new Date();
         var ts = d.getFullYear() + "" + String(d.getMonth() + 1).padStart(2, '0') + "" + String(d.getDate()).padStart(2, '0') + "_" + String(d.getHours()).padStart(2, '0') + "" + String(d.getMinutes()).padStart(2, '0');
         var filename = "Process4_EternalMoment_" + ts + ".md";
-        var proc = Qt.createQmlObject('import Quickshell.Io 1.0; Process {}', appWindow, "exportProc");
-        proc.command = ["bash", "-c", "cat << 'EOF' > ~/Documents/" + filename + "\n" + md + "\nEOF"];
-        proc.running = true;
-        copyStatusMessage = "Report saved to ~/Documents/" + filename;
+        executeShellCommand("mkdir -p ~/Documents && cat << 'EOF' > ~/Documents/" + filename + "\n" + md + "\nEOF");
+        showCanvasToast("Report saved to ~/Documents/" + filename);
+    }
+
+    function captureSpiralSnapshot(callback) {
+        var dir = "/home/matthew/Pictures/TheEternalMoment";
+        executeShellCommand("mkdir -p " + escapeShell(dir));
+
+        var d = new Date();
+        var dateStr = d.getFullYear() + "" + String(d.getMonth() + 1).padStart(2, '0') + "" + String(d.getDate()).padStart(2, '0') + "_" + String(d.getHours()).padStart(2, '0') + "" + String(d.getMinutes()).padStart(2, '0') + "" + String(d.getSeconds()).padStart(2, '0');
+        var filename = "eternity-" + dateStr + ".png";
+        var permanentPath = dir + "/" + filename;
+        var tmpPath = "/tmp/eternal_spiral_share.png";
+
+        spiralCanvas.grabToImage(function(result) {
+            result.saveToFile(tmpPath);
+            result.saveToFile(permanentPath);
+            if (callback) {
+                callback(tmpPath, permanentPath, filename);
+            }
+        });
+    }
+
+    function openShareModal() {
+        captureSpiralSnapshot(function(tmpPath, permanentPath, filename) {
+            sharePreviewPath = permanentPath;
+            sharePreviewUrl = "file://" + tmpPath + "?v=" + Date.now();
+
+            var target = viewingSession || Database.loadSession(activeSessionId);
+            var insight = (target && (target.final_insight || (target.answers && target.answers[80]))) ? (target.final_insight || target.answers[80]) : "";
+            if (insight && insight.length > 160) insight = insight.substring(0, 157) + "...";
+
+            var insightPart = insight ? "\n\"" + insight + "\"\n\n" : "\n";
+            shareCaption = "Process #4 Emergence:" + insightPart + "#Ekology #CleanLanguage #EmergentKnowledge #Process4";
+
+            // Pre-load clipboard with image
+            executeShellCommand("wl-copy -t image/png < " + escapeShell(permanentPath));
+
+            shareModalVisible = true;
+        });
+    }
+
+    function submitPostToX() {
+        if (sharePreviewPath) {
+            executeShellCommand("wl-copy -t image/png < " + escapeShell(sharePreviewPath));
+        }
+        var tweet = shareCaption.trim();
+        var intentUrl = "https://x.com/intent/post?text=" + encodeURIComponent(tweet);
+        Qt.openUrlExternally(intentUrl);
+
+        showCanvasToast("📷 Spiral image copied to clipboard! Press Ctrl+V in X to attach.");
+        shareModalVisible = false;
+    }
+
+    function takeCanvasSnapshot() {
+        captureSpiralSnapshot(function(tmpPath, permanentPath, filename) {
+            executeShellCommand("wl-copy -t image/png < " + escapeShell(permanentPath));
+            showCanvasToast("📷 Snapshot saved to ~/Pictures/TheEternalMoment/" + filename);
+        });
     }
 
     function shareHighlightToX() {
-        var target = viewingSession || Database.loadSession(activeSessionId);
-        if (!target) return;
-        var url = Report.generateXIntentUrl(target);
-        Qt.openUrlExternally(url);
+        openShareModal();
     }
 
     function escapeShell(str) {
@@ -651,36 +729,137 @@ ApplicationWindow {
                         font.letterSpacing: 1.5
                     }
 
-                    // Reset Positions Button
-                    Rectangle {
+                    // Floating Action Controls (Reset, Snapshot, Share on X)
+                    RowLayout {
                         anchors.top: parent.top
                         anchors.right: parent.right
                         anchors.margins: 16
-                        height: 28
-                        width: resetBtnTxt.implicitWidth + 20
-                        radius: 14
-                        color: resetMouse.containsMouse ? Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.2) : Qt.rgba(15/255, 23/255, 42/255, 0.75)
-                        border.width: 1
-                        border.color: resetMouse.containsMouse ? colCyan : "#334155"
+                        spacing: 8
+                        z: 10
 
-                        Text {
-                            id: resetBtnTxt
-                            anchors.centerIn: parent
-                            text: "↺ Reset Positions"
-                            color: resetMouse.containsMouse ? colCyan : colMuted
-                            font.pixelSize: 11
-                            font.bold: true
+                        // 1. Reset Positions Button
+                        Rectangle {
+                            height: 28
+                            width: resetBtnTxt.implicitWidth + 20
+                            radius: 14
+                            color: resetMouse.containsMouse ? Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.2) : Qt.rgba(15/255, 23/255, 42/255, 0.75)
+                            border.width: 1
+                            border.color: resetMouse.containsMouse ? colCyan : "#334155"
+
+                            Text {
+                                id: resetBtnTxt
+                                anchors.centerIn: parent
+                                text: "↺ Reset Positions"
+                                color: resetMouse.containsMouse ? colCyan : colMuted
+                                font.pixelSize: 11
+                                font.bold: true
+                            }
+
+                            MouseArea {
+                                id: resetMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    SpiralEngine.resetNodePositions();
+                                    spiralCanvas.requestPaint();
+                                    showCanvasToast("Spiral nodes reset to original coordinates.");
+                                }
+                            }
                         }
 
-                        MouseArea {
-                            id: resetMouse
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                SpiralEngine.resetNodePositions();
-                                spiralCanvas.requestPaint();
+                        // 2. Snapshot Button (Mirroring Ekology #snapshot-btn-eternity)
+                        Rectangle {
+                            height: 28
+                            width: snapBtnTxt.implicitWidth + 20
+                            radius: 14
+                            color: snapMouse.containsMouse ? Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.25) : Qt.rgba(15/255, 23/255, 42/255, 0.75)
+                            border.width: 1
+                            border.color: snapMouse.containsMouse ? colCyan : "#334155"
+
+                            RowLayout {
+                                anchors.centerIn: parent
+                                spacing: 4
+                                Text {
+                                    text: "📷"
+                                    font.pixelSize: 12
+                                }
+                                Text {
+                                    id: snapBtnTxt
+                                    text: "Snapshot"
+                                    color: snapMouse.containsMouse ? colCyan : colForeground
+                                    font.pixelSize: 11
+                                    font.bold: true
+                                }
                             }
+
+                            MouseArea {
+                                id: snapMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: takeCanvasSnapshot()
+                            }
+                        }
+
+                        // 3. Share to X Button (Mirroring Ekology #share-x-btn-eternity)
+                        Rectangle {
+                            height: 28
+                            width: shareBtnTxt.implicitWidth + 20
+                            radius: 14
+                            color: shareXMouse.containsMouse ? "#18181b" : "#000000"
+                            border.width: 1
+                            border.color: shareXMouse.containsMouse ? "#ffffff" : "#475569"
+
+                            RowLayout {
+                                anchors.centerIn: parent
+                                spacing: 5
+                                Text {
+                                    text: "𝕏"
+                                    color: "#ffffff"
+                                    font.pixelSize: 13
+                                    font.bold: true
+                                }
+                                Text {
+                                    id: shareBtnTxt
+                                    text: "Share on X"
+                                    color: "#ffffff"
+                                    font.pixelSize: 11
+                                    font.bold: true
+                                }
+                            }
+
+                            MouseArea {
+                                id: shareXMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: openShareModal()
+                            }
+                        }
+                    }
+
+                    // Floating Canvas Toast Notification
+                    Rectangle {
+                        anchors.top: parent.top
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.topMargin: 16
+                        height: 32
+                        width: canvasToastTxt.implicitWidth + 28
+                        radius: 16
+                        visible: !!canvasToastMessage
+                        color: "#0f172a"
+                        border.width: 1
+                        border.color: colCyan
+                        z: 20
+
+                        Text {
+                            id: canvasToastTxt
+                            anchors.centerIn: parent
+                            text: canvasToastMessage
+                            color: colForeground
+                            font.pixelSize: 11
+                            font.bold: true
                         }
                     }
 
@@ -1634,6 +1813,267 @@ ApplicationWindow {
                                     onClicked: Qt.openUrlExternally("https://ekology.co.uk")
                                 }
                             }
+                        }
+                }
+            }
+        }
+    }
+    }
+
+    // -------------------------------------------------------------
+    // SHARE ON X / SNAPSHOT MODAL OVERLAY (Ekology Mirror)
+    // -------------------------------------------------------------
+    Rectangle {
+        id: shareModalOverlay
+        anchors.fill: parent
+        z: 9999
+        visible: shareModalVisible
+        color: Qt.rgba(2/255, 6/255, 23/255, 0.92)
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: shareModalVisible = false
+        }
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: Math.min(620, parent.width - 40)
+            height: modalContentCol.implicitHeight + 48
+            radius: 20
+            color: "#0f172a"
+            border.width: 1
+            border.color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.4)
+
+            MouseArea {
+                anchors.fill: parent
+                // absorb click
+            }
+
+            ColumnLayout {
+                id: modalContentCol
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.margins: 24
+                spacing: 16
+
+                // Header
+                RowLayout {
+                    Layout.fillWidth: true
+                    ColumnLayout {
+                        spacing: 2
+                        Text {
+                            text: "Share Eternal Moment"
+                            color: colForeground
+                            font.pixelSize: 18
+                            font.bold: true
+                        }
+                        Text {
+                            text: "Emergent Knowledge • Process #4 Spiral Map"
+                            color: colCyan
+                            font.pixelSize: 11
+                            font.letterSpacing: 0.5
+                        }
+                    }
+                    Item { Layout.fillWidth: true }
+                    Rectangle {
+                        height: 28; width: 28; radius: 14
+                        color: closeShareMouse.containsMouse ? Qt.rgba(239/255, 68/255, 68/255, 0.25) : "transparent"
+                        Text { anchors.centerIn: parent; text: "✕"; color: closeShareMouse.containsMouse ? "#ef4444" : colMuted; font.pixelSize: 14 }
+                        MouseArea {
+                            id: closeShareMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: shareModalVisible = false
+                        }
+                    }
+                }
+
+                // Live Spiral Snapshot Preview
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 220
+                    radius: 12
+                    color: "#020617"
+                    border.width: 1
+                    border.color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.25)
+                    clip: true
+
+                    Image {
+                        id: sharePreviewImg
+                        anchors.fill: parent
+                        anchors.margins: 4
+                        fillMode: Image.PreserveAspectFit
+                        source: sharePreviewUrl
+                        smooth: true
+                        cache: false
+                    }
+
+                    Rectangle {
+                        anchors.bottom: parent.bottom
+                        anchors.right: parent.right
+                        anchors.margins: 10
+                        height: 22
+                        width: badgeTxt.implicitWidth + 16
+                        radius: 11
+                        color: Qt.rgba(2/255, 6/255, 23/255, 0.85)
+                        border.width: 1
+                        border.color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.4)
+                        Text {
+                            id: badgeTxt
+                            anchors.centerIn: parent
+                            text: "3D Spiral Snapshot"
+                            color: colCyan
+                            font.pixelSize: 10
+                            font.bold: true
+                        }
+                    }
+                }
+
+                // Caption / Tweet Text
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text {
+                            text: "Post Commentary (Pre-filled with Emergence):"
+                            color: colMuted
+                            font.pixelSize: 11
+                            font.bold: true
+                        }
+                        Item { Layout.fillWidth: true }
+                        Text {
+                            text: shareCaptionArea.text.length + " chars"
+                            color: shareCaptionArea.text.length > 280 ? "#ef4444" : colMuted
+                            font.pixelSize: 11
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 80
+                        radius: 8
+                        color: "#020617"
+                        border.width: 1
+                        border.color: shareCaptionArea.activeFocus ? colCyan : "#334155"
+
+                        ScrollView {
+                            anchors.fill: parent
+                            anchors.margins: 6
+                            clip: true
+
+                            TextArea {
+                                id: shareCaptionArea
+                                text: shareCaption
+                                color: colForeground
+                                font.pixelSize: 12
+                                wrapMode: TextEdit.Wrap
+                                background: null
+                                onTextChanged: shareCaption = text
+                            }
+                        }
+                    }
+                }
+
+                // Actions
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 10
+
+                    Rectangle {
+                        height: 38
+                        width: 75
+                        radius: 8
+                        color: cancelShareMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.08) : Qt.rgba(255, 255, 255, 0.04)
+                        border.width: 1
+                        border.color: "#334155"
+                        Text { anchors.centerIn: parent; text: "Cancel"; color: colMuted; font.pixelSize: 12 }
+                        MouseArea {
+                            id: cancelShareMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: shareModalVisible = false
+                        }
+                    }
+
+                    Rectangle {
+                        height: 38
+                        width: 110
+                        radius: 8
+                        color: copyImgMouse.containsMouse ? Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.2) : Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.1)
+                        border.width: 1
+                        border.color: colCyan
+                        Text { anchors.centerIn: parent; text: "📋 Copy Image"; color: colCyan; font.bold: true; font.pixelSize: 12 }
+                        MouseArea {
+                            id: copyImgMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (sharePreviewPath) {
+                                    executeShellCommand("wl-copy -t image/png < " + escapeShell(sharePreviewPath));
+                                    showCanvasToast("📋 Image copied to clipboard!");
+                                }
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        height: 38
+                        width: 105
+                        radius: 8
+                        color: saveImgMouse.containsMouse ? Qt.rgba(colPast.r, colPast.g, colPast.b, 0.2) : Qt.rgba(colPast.r, colPast.g, colPast.b, 0.1)
+                        border.width: 1
+                        border.color: colPast
+                        Text { anchors.centerIn: parent; text: "💾 Save PNG"; color: colPast; font.bold: true; font.pixelSize: 12 }
+                        MouseArea {
+                            id: saveImgMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                showCanvasToast("💾 Saved to ~/Pictures/TheEternalMoment/");
+                            }
+                        }
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    Rectangle {
+                        height: 38
+                        width: 135
+                        radius: 8
+                        color: postXMouse.containsMouse ? "#18181b" : "#000000"
+                        border.width: 1.5
+                        border.color: "#ffffff"
+
+                        RowLayout {
+                            anchors.centerIn: parent
+                            spacing: 8
+                            Text {
+                                text: "𝕏"
+                                color: "#ffffff"
+                                font.pixelSize: 15
+                                font.bold: true
+                            }
+                            Text {
+                                text: "Post to X"
+                                color: "#ffffff"
+                                font.bold: true
+                                font.pixelSize: 13
+                            }
+                        }
+
+                        MouseArea {
+                            id: postXMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: submitPostToX()
                         }
                     }
                 }
