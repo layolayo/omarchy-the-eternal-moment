@@ -312,7 +312,7 @@ ApplicationWindow {
     function takeCanvasSnapshot() {
         captureSpiralSnapshot(function(tmpPath, permanentPath, filename) {
             executeShellCommand("wl-copy -t image/png < " + escapeShell(permanentPath));
-            showCanvasToast("📷 Snapshot saved to " + permanentPath);
+            showCanvasToast("Snapshot Saved");
         });
     }
 
