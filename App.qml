@@ -26,11 +26,11 @@ ApplicationWindow {
     property int currentStepIndex: 0
     property var flatSteps: []
     property var answers: []
-    property int preClarity: 5
-    property int preMovement: 5
+    property int preClarity: 50
+    property int preMovement: 50
     property int preFocus: preMovement
-    property int postClarity: 5
-    property int postMovement: 5
+    property int postClarity: 50
+    property int postMovement: 50
     property int postFocus: postMovement
     property bool isCheckinModalOpen: false
     property var selectedTags: []
@@ -97,12 +97,12 @@ ApplicationWindow {
         sessionUuid = Database.generateUUID();
         currentStepIndex = 0;
         answers = new Array(flatSteps.length).fill("");
-        preClarity = 5;
-        preMovement = 5;
-        preFocus = 5;
-        postClarity = 5;
-        postMovement = 5;
-        postFocus = 5;
+        preClarity = 50;
+        preMovement = 50;
+        preFocus = 50;
+        postClarity = 50;
+        postMovement = 50;
+        postFocus = 50;
         selectedTags = [];
         sessionFeedback = "";
         copyStatusMessage = "";
@@ -131,11 +131,11 @@ ApplicationWindow {
         sessionUuid = session.uuid;
         currentStepIndex = session.current_step || 0;
         answers = session.answers || new Array(flatSteps.length).fill("");
-        preClarity = session.pre_clarity || 5;
-        preMovement = session.pre_movement !== undefined ? session.pre_movement : (session.pre_focus || 5);
+        preClarity = session.pre_clarity !== undefined ? session.pre_clarity : 50;
+        preMovement = session.pre_movement !== undefined ? session.pre_movement : (session.pre_focus || 50);
         preFocus = preMovement;
-        postClarity = session.post_clarity || 5;
-        postMovement = session.post_movement !== undefined ? session.post_movement : (session.post_focus || 5);
+        postClarity = session.post_clarity !== undefined ? session.post_clarity : 50;
+        postMovement = session.post_movement !== undefined ? session.post_movement : (session.post_focus || 50);
         postFocus = postMovement;
         selectedTags = session.tags || [];
         sessionFeedback = session.feedback || "";
@@ -1578,7 +1578,7 @@ ApplicationWindow {
                                         }
                                         Item { Layout.fillWidth: true }
                                         Text {
-                                            text: "Shift: " + ((postClarity - preClarity >= 0 ? "+" : "") + (postClarity - preClarity)) + " Clarity • " + ((postMovement - preMovement >= 0 ? "+" : "") + (postMovement - preMovement)) + " Movement"
+                                            text: "Shift: " + ((postClarity - preClarity >= 0 ? "+" : "") + (postClarity - preClarity)) + "% Clarity • " + ((postMovement - preMovement >= 0 ? "+" : "") + (postMovement - preMovement)) + "% Movement"
                                             color: colGold
                                             font.bold: true
                                             font.pixelSize: 11
@@ -1599,8 +1599,8 @@ ApplicationWindow {
                                             Text { text: "Foggy"; color: colMuted; font.italic: true; font.pixelSize: 10 }
                                             Slider {
                                                 Layout.fillWidth: true
-                                                from: 1
-                                                to: 10
+                                                from: 0
+                                                to: 100
                                                 stepSize: 1
                                                 value: postClarity
                                                 onValueChanged: {
@@ -1626,8 +1626,8 @@ ApplicationWindow {
                                             Text { text: "Stuck"; color: colMuted; font.italic: true; font.pixelSize: 10 }
                                             Slider {
                                                 Layout.fillWidth: true
-                                                from: 1
-                                                to: 10
+                                                from: 0
+                                                to: 100
                                                 stepSize: 1
                                                 value: postMovement
                                                 onValueChanged: {
@@ -2137,9 +2137,9 @@ ApplicationWindow {
                                         }
                                         Text {
                                             property var sessionData: viewingSession || Database.loadSession(activeSessionId)
-                                            property int preVal: sessionData ? (sessionData.pre_clarity || 5) : 5
-                                            property int postVal: sessionData ? (sessionData.post_clarity || 5) : 5
-                                            text: preVal + "/10 → " + postVal + "/10"
+                                            property int preVal: sessionData ? (sessionData.pre_clarity !== undefined ? sessionData.pre_clarity : 50) : 50
+                                            property int postVal: sessionData ? (sessionData.post_clarity !== undefined ? sessionData.post_clarity : 50) : 50
+                                            text: preVal + "% → " + postVal + "%"
                                             color: colForeground
                                             font.pixelSize: 15
                                             font.bold: true
@@ -2150,7 +2150,9 @@ ApplicationWindow {
 
                                     Rectangle {
                                         property var sessionData: viewingSession || Database.loadSession(activeSessionId)
-                                        property int diff: (sessionData ? (sessionData.post_clarity || 5) : 5) - (sessionData ? (sessionData.pre_clarity || 5) : 5)
+                                        property int preVal: sessionData ? (sessionData.pre_clarity !== undefined ? sessionData.pre_clarity : 50) : 50
+                                        property int postVal: sessionData ? (sessionData.post_clarity !== undefined ? sessionData.post_clarity : 50) : 50
+                                        property int diff: postVal - preVal
                                         radius: 6
                                         implicitWidth: clarityDiffText.implicitWidth + 16
                                         implicitHeight: 28
@@ -2162,8 +2164,10 @@ ApplicationWindow {
                                             id: clarityDiffText
                                             anchors.centerIn: parent
                                             property var sessionData: viewingSession || Database.loadSession(activeSessionId)
-                                            property int diff: (sessionData ? (sessionData.post_clarity || 5) : 5) - (sessionData ? (sessionData.pre_clarity || 5) : 5)
-                                            text: (diff >= 0 ? "+" : "") + diff + " Shift"
+                                            property int preVal: sessionData ? (sessionData.pre_clarity !== undefined ? sessionData.pre_clarity : 50) : 50
+                                            property int postVal: sessionData ? (sessionData.post_clarity !== undefined ? sessionData.post_clarity : 50) : 50
+                                            property int diff: postVal - preVal
+                                            text: (diff >= 0 ? "+" : "") + diff + "% Shift"
                                             color: diff > 0 ? "#10b981" : (diff < 0 ? "#ef4444" : "#94a3b8")
                                             font.bold: true
                                             font.pixelSize: 11
@@ -2196,9 +2200,9 @@ ApplicationWindow {
                                         }
                                         Text {
                                             property var sessionData: viewingSession || Database.loadSession(activeSessionId)
-                                            property int preVal: sessionData ? (sessionData.pre_movement !== undefined ? sessionData.pre_movement : (sessionData.pre_focus || 5)) : 5
-                                            property int postVal: sessionData ? (sessionData.post_movement !== undefined ? sessionData.post_movement : (sessionData.post_focus || 5)) : 5
-                                            text: preVal + "/10 → " + postVal + "/10"
+                                            property int preVal: sessionData ? (sessionData.pre_movement !== undefined ? sessionData.pre_movement : (sessionData.pre_focus || 50)) : 50
+                                            property int postVal: sessionData ? (sessionData.post_movement !== undefined ? sessionData.post_movement : (sessionData.post_focus || 50)) : 50
+                                            text: preVal + "% → " + postVal + "%"
                                             color: colForeground
                                             font.pixelSize: 15
                                             font.bold: true
@@ -2209,8 +2213,8 @@ ApplicationWindow {
 
                                     Rectangle {
                                         property var sessionData: viewingSession || Database.loadSession(activeSessionId)
-                                        property int preVal: sessionData ? (sessionData.pre_movement !== undefined ? sessionData.pre_movement : (sessionData.pre_focus || 5)) : 5
-                                        property int postVal: sessionData ? (sessionData.post_movement !== undefined ? sessionData.post_movement : (sessionData.post_focus || 5)) : 5
+                                        property int preVal: sessionData ? (sessionData.pre_movement !== undefined ? sessionData.pre_movement : (sessionData.pre_focus || 50)) : 50
+                                        property int postVal: sessionData ? (sessionData.post_movement !== undefined ? sessionData.post_movement : (sessionData.post_focus || 50)) : 50
                                         property int diff: postVal - preVal
                                         radius: 6
                                         implicitWidth: movementDiffText.implicitWidth + 16
@@ -2223,10 +2227,10 @@ ApplicationWindow {
                                             id: movementDiffText
                                             anchors.centerIn: parent
                                             property var sessionData: viewingSession || Database.loadSession(activeSessionId)
-                                            property int preVal: sessionData ? (sessionData.pre_movement !== undefined ? sessionData.pre_movement : (sessionData.pre_focus || 5)) : 5
-                                            property int postVal: sessionData ? (sessionData.post_movement !== undefined ? sessionData.post_movement : (sessionData.post_focus || 5)) : 5
+                                            property int preVal: sessionData ? (sessionData.pre_movement !== undefined ? sessionData.pre_movement : (sessionData.pre_focus || 50)) : 50
+                                            property int postVal: sessionData ? (sessionData.post_movement !== undefined ? sessionData.post_movement : (sessionData.post_focus || 50)) : 50
                                             property int diff: postVal - preVal
-                                            text: (diff >= 0 ? "+" : "") + diff + " Shift"
+                                            text: (diff >= 0 ? "+" : "") + diff + "% Shift"
                                             color: diff > 0 ? "#10b981" : (diff < 0 ? "#ef4444" : "#94a3b8")
                                             font.bold: true
                                             font.pixelSize: 11
@@ -2758,8 +2762,8 @@ ApplicationWindow {
 
                         Slider {
                             Layout.fillWidth: true
-                            from: 1
-                            to: 10
+                            from: 0
+                            to: 100
                             stepSize: 1
                             value: preClarity
                             onValueChanged: {
@@ -2805,8 +2809,8 @@ ApplicationWindow {
 
                         Slider {
                             Layout.fillWidth: true
-                            from: 1
-                            to: 10
+                            from: 0
+                            to: 100
                             stepSize: 1
                             value: preMovement
                             onValueChanged: {

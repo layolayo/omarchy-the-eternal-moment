@@ -10,6 +10,13 @@ function getDb() {
     return LS.LocalStorage.openDatabaseSync(DB_NAME, DB_VERSION, DB_DESCRIPTION, DB_SIZE);
 }
 
+function normalizePct(val) {
+    if (val === undefined || val === null) return 50;
+    val = Number(val);
+    if (val <= 10 && val > 0) return Math.round(val * 10);
+    return Math.round(val);
+}
+
 function initDb() {
     var db = getDb();
     db.transaction(function(tx) {
@@ -23,12 +30,12 @@ function initDb() {
                 current_step INTEGER DEFAULT 0,
                 now_start TEXT,
                 final_insight TEXT,
-                pre_clarity INTEGER DEFAULT 5,
-                pre_focus INTEGER DEFAULT 5,
-                post_clarity INTEGER DEFAULT 5,
-                post_focus INTEGER DEFAULT 5,
-                pre_movement INTEGER DEFAULT 5,
-                post_movement INTEGER DEFAULT 5,
+                pre_clarity INTEGER DEFAULT 50,
+                pre_focus INTEGER DEFAULT 50,
+                post_clarity INTEGER DEFAULT 50,
+                post_focus INTEGER DEFAULT 50,
+                pre_movement INTEGER DEFAULT 50,
+                post_movement INTEGER DEFAULT 50,
                 answers_json TEXT,
                 tags_json TEXT,
                 feedback TEXT
@@ -44,10 +51,10 @@ function initDb() {
             if (col === "post_movement") hasPostMov = true;
         }
         if (!hasPreMov) {
-            tx.executeSql("ALTER TABLE sessions ADD COLUMN pre_movement INTEGER DEFAULT 5");
+            tx.executeSql("ALTER TABLE sessions ADD COLUMN pre_movement INTEGER DEFAULT 50");
         }
         if (!hasPostMov) {
-            tx.executeSql("ALTER TABLE sessions ADD COLUMN post_movement INTEGER DEFAULT 5");
+            tx.executeSql("ALTER TABLE sessions ADD COLUMN post_movement INTEGER DEFAULT 50");
         }
     });
 }
@@ -64,8 +71,10 @@ function saveSession(session) {
     var recordId = session.id || null;
     var nowIso = new Date().toISOString();
 
-    var preMov = session.pre_movement !== undefined ? session.pre_movement : (session.pre_focus || 5);
-    var postMov = session.post_movement !== undefined ? session.post_movement : (session.post_focus || 5);
+    var preMov = normalizePct(session.pre_movement !== undefined ? session.pre_movement : (session.pre_focus !== undefined ? session.pre_focus : 50));
+    var postMov = normalizePct(session.post_movement !== undefined ? session.post_movement : (session.post_focus !== undefined ? session.post_focus : 50));
+    var preClar = normalizePct(session.pre_clarity !== undefined ? session.pre_clarity : 50);
+    var postClar = normalizePct(session.post_clarity !== undefined ? session.post_clarity : 50);
 
     db.transaction(function(tx) {
         if (!recordId) {
@@ -84,8 +93,8 @@ function saveSession(session) {
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
                 uuid, nowIso, nowIso, session.status || 'in_progress', session.current_step || 0,
-                nowStart, finalInsight, session.pre_clarity || 5, preMov,
-                session.post_clarity || 5, postMov, preMov, postMov,
+                nowStart, finalInsight, preClar, preMov,
+                postClar, postMov, preMov, postMov,
                 answersJson, tagsJson, session.feedback || ""
             ]);
             recordId = res.insertId;
@@ -114,8 +123,8 @@ function saveSession(session) {
                 WHERE id = ?
             `, [
                 nowIso, session.status || 'in_progress', session.current_step || 0,
-                nowStart, finalInsight, session.pre_clarity || 5, preMov,
-                session.post_clarity || 5, postMov, preMov, postMov,
+                nowStart, finalInsight, preClar, preMov,
+                postClar, postMov, preMov, postMov,
                 answersJson, tagsJson, session.feedback || "",
                 recordId
             ]);
@@ -138,8 +147,10 @@ function listSessions() {
             var item = rs.rows.item(i);
             var tags = [];
             try { tags = JSON.parse(item.tags_json || "[]"); } catch (e) {}
-            var pMov = item.pre_movement !== null && item.pre_movement !== undefined ? item.pre_movement : (item.pre_focus || 5);
-            var poMov = item.post_movement !== null && item.post_movement !== undefined ? item.post_movement : (item.post_focus || 5);
+            var pClar = normalizePct(item.pre_clarity);
+            var poClar = normalizePct(item.post_clarity);
+            var pMov = normalizePct(item.pre_movement !== null && item.pre_movement !== undefined ? item.pre_movement : item.pre_focus);
+            var poMov = normalizePct(item.post_movement !== null && item.post_movement !== undefined ? item.post_movement : item.post_focus);
             list.push({
                 id: item.id,
                 uuid: item.uuid,
@@ -149,10 +160,10 @@ function listSessions() {
                 current_step: item.current_step,
                 now_start: item.now_start || "Untitled Session",
                 final_insight: item.final_insight || "",
-                pre_clarity: item.pre_clarity,
+                pre_clarity: pClar,
                 pre_focus: pMov,
                 pre_movement: pMov,
-                post_clarity: item.post_clarity,
+                post_clarity: poClar,
                 post_focus: poMov,
                 post_movement: poMov,
                 tags: tags
@@ -173,8 +184,10 @@ function loadSession(id) {
             var tags = [];
             try { answers = JSON.parse(row.answers_json || "[]"); } catch (e) {}
             try { tags = JSON.parse(row.tags_json || "[]"); } catch (e) {}
-            var pMov = row.pre_movement !== null && row.pre_movement !== undefined ? row.pre_movement : (row.pre_focus || 5);
-            var poMov = row.post_movement !== null && row.post_movement !== undefined ? row.post_movement : (row.post_focus || 5);
+            var pClar = normalizePct(row.pre_clarity);
+            var poClar = normalizePct(row.post_clarity);
+            var pMov = normalizePct(row.pre_movement !== null && row.pre_movement !== undefined ? row.pre_movement : row.pre_focus);
+            var poMov = normalizePct(row.post_movement !== null && row.post_movement !== undefined ? row.post_movement : row.post_focus);
             session = {
                 id: row.id,
                 uuid: row.uuid,
@@ -184,10 +197,10 @@ function loadSession(id) {
                 current_step: row.current_step,
                 now_start: row.now_start,
                 final_insight: row.final_insight,
-                pre_clarity: row.pre_clarity,
+                pre_clarity: pClar,
                 pre_focus: pMov,
                 pre_movement: pMov,
-                post_clarity: row.post_clarity,
+                post_clarity: poClar,
                 post_focus: poMov,
                 post_movement: poMov,
                 answers: answers,
