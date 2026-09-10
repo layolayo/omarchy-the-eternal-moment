@@ -27,9 +27,12 @@ ApplicationWindow {
     property var flatSteps: []
     property var answers: []
     property int preClarity: 5
-    property int preFocus: 5
+    property int preMovement: 5
+    property int preFocus: preMovement
     property int postClarity: 5
-    property int postFocus: 5
+    property int postMovement: 5
+    property int postFocus: postMovement
+    property bool isCheckinModalOpen: false
     property var selectedTags: []
     property string sessionFeedback: ""
     property string copyStatusMessage: ""
@@ -95,8 +98,10 @@ ApplicationWindow {
         currentStepIndex = 0;
         answers = new Array(flatSteps.length).fill("");
         preClarity = 5;
+        preMovement = 5;
         preFocus = 5;
         postClarity = 5;
+        postMovement = 5;
         postFocus = 5;
         selectedTags = [];
         sessionFeedback = "";
@@ -110,12 +115,14 @@ ApplicationWindow {
             status: "in_progress",
             current_step: 0,
             pre_clarity: preClarity,
-            pre_focus: preFocus,
+            pre_movement: preMovement,
+            pre_focus: preMovement,
             answers: answers
         };
         activeSessionId = Database.saveSession(s);
         SpiralEngine.rebuildFromSession(flatSteps, answers, 0, false);
         refreshHistory();
+        isCheckinModalOpen = true;
     }
 
     function resumeSession(session) {
@@ -125,9 +132,11 @@ ApplicationWindow {
         currentStepIndex = session.current_step || 0;
         answers = session.answers || new Array(flatSteps.length).fill("");
         preClarity = session.pre_clarity || 5;
-        preFocus = session.pre_focus || 5;
+        preMovement = session.pre_movement !== undefined ? session.pre_movement : (session.pre_focus || 5);
+        preFocus = preMovement;
         postClarity = session.post_clarity || 5;
-        postFocus = session.post_focus || 5;
+        postMovement = session.post_movement !== undefined ? session.post_movement : (session.post_focus || 5);
+        postFocus = postMovement;
         selectedTags = session.tags || [];
         sessionFeedback = session.feedback || "";
         answerDraft = (answers && answers[currentStepIndex]) ? answers[currentStepIndex] : "";
@@ -150,13 +159,15 @@ ApplicationWindow {
         var s = {
             id: activeSessionId,
             uuid: sessionUuid,
-            status: "completed",
-            current_step: flatSteps.length,
-            final_insight: (answers && answers[flatSteps.length - 1]) ? answers[flatSteps.length - 1] : "",
+            status: currentStepIndex >= flatSteps.length ? "completed" : "in_progress",
+            current_step: Math.min(currentStepIndex, flatSteps.length),
+            final_insight: (answers && answers[flatSteps.length - 1]) ? answers[flatSteps.length - 1] : ((answers && answers[80]) ? answers[80] : ""),
             pre_clarity: preClarity,
-            pre_focus: preFocus,
+            pre_movement: preMovement,
+            pre_focus: preMovement,
             post_clarity: postClarity,
-            post_focus: postFocus,
+            post_movement: postMovement,
+            post_focus: postMovement,
             tags: selectedTags,
             feedback: sessionFeedback,
             answers: answers
@@ -186,11 +197,13 @@ ApplicationWindow {
             uuid: sessionUuid,
             status: (isDone ? "completed" : "in_progress"),
             current_step: Math.min(currentStepIndex, flatSteps.length),
-            final_insight: (answers && answers[flatSteps.length - 1]) ? answers[flatSteps.length - 1] : "",
+            final_insight: (answers && answers[flatSteps.length - 1]) ? answers[flatSteps.length - 1] : ((answers && answers[80]) ? answers[80] : ""),
             pre_clarity: preClarity,
-            pre_focus: preFocus,
+            pre_movement: preMovement,
+            pre_focus: preMovement,
             post_clarity: postClarity,
-            post_focus: postFocus,
+            post_movement: postMovement,
+            post_focus: postMovement,
             tags: selectedTags,
             feedback: sessionFeedback,
             answers: answers
@@ -200,11 +213,6 @@ ApplicationWindow {
         refreshHistory();
 
         answerDraft = (currentStepIndex < flatSteps.length && answers[currentStepIndex]) ? answers[currentStepIndex] : "";
-
-        if (isDone) {
-            viewingSession = Database.loadSession(activeSessionId);
-            activeTab = "report";
-        }
     }
 
     function toggleFullscreen() {
@@ -1337,6 +1345,32 @@ ApplicationWindow {
                                                     visible: (answers && answers[79]) ? true : false
                                                 }
                                             }
+                                        // Quick Check-in trigger pill (on Step 0)
+                                        Rectangle {
+                                            width: parent.width
+                                            height: 32
+                                            radius: 8
+                                            color: checkinPillHover.containsMouse ? "#2606b6d4" : "#1406b6d4"
+                                            border.width: 1
+                                            border.color: colCyan
+                                            visible: currentStepIndex === 0
+
+                                            RowLayout {
+                                                anchors.centerIn: parent
+                                                spacing: 8
+                                                Text { text: "🎯"; font.pixelSize: 13 }
+                                                Text { text: "Quick Check-in:"; color: colCyan; font.bold: true; font.pixelSize: 11 }
+                                                Text { text: "Clarity " + preClarity + "/10 (Foggy-Clear) • Movement " + preMovement + "/10 (Stuck-Flowing)"; color: colForeground; font.pixelSize: 11 }
+                                                Text { text: "✎"; color: colGold; font.bold: true; font.pixelSize: 11 }
+                                            }
+
+                                            MouseArea {
+                                                id: checkinPillHover
+                                                anchors.fill: parent
+                                                hoverEnabled: true
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: isCheckinModalOpen = true
+                                            }
                                         }
                                     }
                                 }
@@ -1453,147 +1487,7 @@ ApplicationWindow {
                                 }
                             }
 
-                            // Pre-session calibration slider row (visible on step 0)
-                            Rectangle {
-                                width: parent.width
-                                implicitHeight: calibCol.implicitHeight + 20
-                                radius: 10
-                                visible: currentStepIndex === 0
-                                color: "#0b192e"
-                                border.width: 1
-                                border.color: "#1e3a5f"
 
-                                Column {
-                                    id: calibCol
-                                    anchors.top: parent.top
-                                    anchors.left: parent.left
-                                    anchors.right: parent.right
-                                    anchors.margins: 10
-                                    spacing: 8
-
-                                    Text {
-                                        text: "Calibration Before You Begin:"
-                                        color: colCyan
-                                        font.bold: true
-                                        font.pixelSize: 11
-                                    }
-
-                                    Row {
-                                        width: parent.width
-                                        spacing: 8
-                                        Text {
-                                            text: "Clarity (" + preClarity + "/10):"
-                                            color: colForeground
-                                            font.pixelSize: 11
-                                            width: 95
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
-                                        Slider {
-                                            width: parent.width - 105
-                                            from: 1; to: 10; stepSize: 1; value: preClarity
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            onValueChanged: {
-                                                preClarity = Math.round(value);
-                                                if (currentStepIndex === 0) postClarity = preClarity;
-                                            }
-                                        }
-                                    }
-
-                                    Row {
-                                        width: parent.width
-                                        spacing: 8
-                                        Text {
-                                            text: "Focus (" + preFocus + "/10):"
-                                            color: colForeground
-                                            font.pixelSize: 11
-                                            width: 95
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
-                                        Slider {
-                                            width: parent.width - 105
-                                            from: 1; to: 10; stepSize: 1; value: preFocus
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            onValueChanged: {
-                                                preFocus = Math.round(value);
-                                                if (currentStepIndex === 0) postFocus = preFocus;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Post-session calibration slider row (visible on final step to measure progress)
-                            Rectangle {
-                                width: parent.width
-                                implicitHeight: postCalibCol.implicitHeight + 20
-                                radius: 10
-                                visible: currentStep && (currentStep.key === "awitdbwykatsawykn" || currentStepIndex === flatSteps.length - 1)
-                                color: "#160d2b"
-                                border.width: 1
-                                border.color: "#8b5cf6"
-
-                                Column {
-                                    id: postCalibCol
-                                    anchors.top: parent.top
-                                    anchors.left: parent.left
-                                    anchors.right: parent.right
-                                    anchors.margins: 10
-                                    spacing: 8
-
-                                    RowLayout {
-                                        width: parent.width
-                                        Text {
-                                            text: "✨ Post-Session Calibration:"
-                                            color: "#c4b5fd"
-                                            font.bold: true
-                                            font.pixelSize: 11
-                                        }
-                                        Item { Layout.fillWidth: true }
-                                        Text {
-                                            text: "Shift: " + ((postClarity - preClarity >= 0 ? "+" : "") + (postClarity - preClarity)) + " Clarity • " + ((postFocus - preFocus >= 0 ? "+" : "") + (postFocus - preFocus)) + " Focus"
-                                            color: colGold
-                                            font.bold: true
-                                            font.pixelSize: 10
-                                        }
-                                    }
-
-                                    Row {
-                                        width: parent.width
-                                        spacing: 8
-                                        Text {
-                                            text: "Clarity (" + postClarity + "/10):"
-                                            color: colForeground
-                                            font.pixelSize: 11
-                                            width: 95
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
-                                        Slider {
-                                            width: parent.width - 105
-                                            from: 1; to: 10; stepSize: 1; value: postClarity
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            onValueChanged: postClarity = Math.round(value)
-                                        }
-                                    }
-
-                                    Row {
-                                        width: parent.width
-                                        spacing: 8
-                                        Text {
-                                            text: "Focus (" + postFocus + "/10):"
-                                            color: colForeground
-                                            font.pixelSize: 11
-                                            width: 95
-                                            anchors.verticalCenter: parent.verticalCenter
-                                        }
-                                        Slider {
-                                            width: parent.width - 105
-                                            from: 1; to: 10; stepSize: 1; value: postFocus
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            onValueChanged: postFocus = Math.round(value)
-                                        }
-                                    }
-                                }
-                            }
 
                             // Dedicated Finishing The Metrics Screen (When 80 inquiry steps complete)
                             Rectangle {
@@ -1682,54 +1576,75 @@ ApplicationWindow {
                                         }
                                         Item { Layout.fillWidth: true }
                                         Text {
-                                            text: "Shift: " + ((postClarity - preClarity >= 0 ? "+" : "") + (postClarity - preClarity)) + " Clarity • " + ((postFocus - preFocus >= 0 ? "+" : "") + (postFocus - preFocus)) + " Focus"
+                                            text: "Shift: " + ((postClarity - preClarity >= 0 ? "+" : "") + (postClarity - preClarity)) + " Clarity • " + ((postMovement - preMovement >= 0 ? "+" : "") + (postMovement - preMovement)) + " Movement"
                                             color: colGold
                                             font.bold: true
                                             font.pixelSize: 11
                                         }
                                     }
 
-                                    // Clarity Slider
-                                    Row {
+                                    // Clarity Slider (Foggy -> Clear)
+                                    Column {
                                         width: parent.width
-                                        spacing: 8
-                                        Text {
-                                            text: "Clarity (" + postClarity + "/10):"
-                                            color: colForeground
-                                            font.pixelSize: 11
-                                            width: 95
-                                            anchors.verticalCenter: parent.verticalCenter
+                                        spacing: 2
+
+                                        RowLayout {
+                                            width: parent.width
+                                            Text { text: "Clarity"; color: colForeground; font.bold: true; font.pixelSize: 11 }
+                                            Item { Layout.fillWidth: true }
+                                            Text { text: postClarity + " / 10"; color: colCyan; font.bold: true; font.pixelSize: 11 }
                                         }
-                                        Slider {
-                                            width: parent.width - 105
-                                            from: 1; to: 10; stepSize: 1; value: postClarity
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            onValueChanged: {
-                                                postClarity = Math.round(value);
-                                                saveFinalMetrics();
+
+                                        RowLayout {
+                                            width: parent.width
+                                            spacing: 6
+
+                                            Text { text: "Foggy"; color: colMuted; font.italic: true; font.pixelSize: 10 }
+                                            Slider {
+                                                Layout.fillWidth: true
+                                                from: 1
+                                                to: 10
+                                                stepSize: 1
+                                                value: postClarity
+                                                onValueChanged: {
+                                                    postClarity = Math.round(value);
+                                                    saveFinalMetrics();
+                                                }
                                             }
+                                            Text { text: "Clear"; color: colMuted; font.italic: true; font.pixelSize: 10 }
                                         }
                                     }
 
-                                    // Focus Slider
-                                    Row {
+                                    // Movement Slider (Stuck -> Flowing)
+                                    Column {
                                         width: parent.width
-                                        spacing: 8
-                                        Text {
-                                            text: "Focus (" + postFocus + "/10):"
-                                            color: colForeground
-                                            font.pixelSize: 11
-                                            width: 95
-                                            anchors.verticalCenter: parent.verticalCenter
+                                        spacing: 2
+
+                                        RowLayout {
+                                            width: parent.width
+                                            Text { text: "Movement"; color: colForeground; font.bold: true; font.pixelSize: 11 }
+                                            Item { Layout.fillWidth: true }
+                                            Text { text: postMovement + " / 10"; color: colCyan; font.bold: true; font.pixelSize: 11 }
                                         }
-                                        Slider {
-                                            width: parent.width - 105
-                                            from: 1; to: 10; stepSize: 1; value: postFocus
-                                            anchors.verticalCenter: parent.verticalCenter
-                                            onValueChanged: {
-                                                postFocus = Math.round(value);
-                                                saveFinalMetrics();
+
+                                        RowLayout {
+                                            width: parent.width
+                                            spacing: 6
+
+                                            Text { text: "Stuck"; color: colMuted; font.italic: true; font.pixelSize: 10 }
+                                            Slider {
+                                                Layout.fillWidth: true
+                                                from: 1
+                                                to: 10
+                                                stepSize: 1
+                                                value: postMovement
+                                                onValueChanged: {
+                                                    postMovement = Math.round(value);
+                                                    postFocus = postMovement;
+                                                    saveFinalMetrics();
+                                                }
                                             }
+                                            Text { text: "Flowing"; color: colMuted; font.italic: true; font.pixelSize: 10 }
                                         }
                                     }
 
@@ -2265,7 +2180,7 @@ ApplicationWindow {
                                 }
                             }
 
-                            // Focus Metric Block
+                            // Movement Metric Block
                             Rectangle {
                                 Layout.fillWidth: true
                                 Layout.preferredHeight: 62
@@ -2282,15 +2197,15 @@ ApplicationWindow {
                                     ColumnLayout {
                                         spacing: 2
                                         Text {
-                                            text: "Present Focus"
+                                            text: "Movement Flow"
                                             color: "#94a3b8"
                                             font.pixelSize: 11
                                             font.bold: true
                                         }
                                         Text {
                                             property var sessionData: viewingSession || Database.loadSession(activeSessionId)
-                                            property int preVal: sessionData ? (sessionData.pre_focus || 5) : 5
-                                            property int postVal: sessionData ? (sessionData.post_focus || 5) : 5
+                                            property int preVal: sessionData ? (sessionData.pre_movement !== undefined ? sessionData.pre_movement : (sessionData.pre_focus || 5)) : 5
+                                            property int postVal: sessionData ? (sessionData.post_movement !== undefined ? sessionData.post_movement : (sessionData.post_focus || 5)) : 5
                                             text: preVal + "/10 → " + postVal + "/10"
                                             color: colForeground
                                             font.pixelSize: 15
@@ -2302,19 +2217,23 @@ ApplicationWindow {
 
                                     Rectangle {
                                         property var sessionData: viewingSession || Database.loadSession(activeSessionId)
-                                        property int diff: (sessionData ? (sessionData.post_focus || 5) : 5) - (sessionData ? (sessionData.pre_focus || 5) : 5)
+                                        property int preVal: sessionData ? (sessionData.pre_movement !== undefined ? sessionData.pre_movement : (sessionData.pre_focus || 5)) : 5
+                                        property int postVal: sessionData ? (sessionData.post_movement !== undefined ? sessionData.post_movement : (sessionData.post_focus || 5)) : 5
+                                        property int diff: postVal - preVal
                                         radius: 6
-                                        implicitWidth: focusDiffText.implicitWidth + 16
+                                        implicitWidth: movementDiffText.implicitWidth + 16
                                         implicitHeight: 28
                                         color: diff > 0 ? Qt.rgba(16/255, 185/255, 129/255, 0.2) : (diff < 0 ? Qt.rgba(239/255, 68/255, 68/255, 0.2) : Qt.rgba(148/255, 163/255, 184/255, 0.15))
                                         border.width: 1
                                         border.color: diff > 0 ? "#10b981" : (diff < 0 ? "#ef4444" : "#64748b")
 
                                         Text {
-                                            id: focusDiffText
+                                            id: movementDiffText
                                             anchors.centerIn: parent
                                             property var sessionData: viewingSession || Database.loadSession(activeSessionId)
-                                            property int diff: (sessionData ? (sessionData.post_focus || 5) : 5) - (sessionData ? (sessionData.pre_focus || 5) : 5)
+                                            property int preVal: sessionData ? (sessionData.pre_movement !== undefined ? sessionData.pre_movement : (sessionData.pre_focus || 5)) : 5
+                                            property int postVal: sessionData ? (sessionData.post_movement !== undefined ? sessionData.post_movement : (sessionData.post_focus || 5)) : 5
+                                            property int diff: postVal - preVal
                                             text: (diff >= 0 ? "+" : "") + diff + " Shift"
                                             color: diff > 0 ? "#10b981" : (diff < 0 ? "#ef4444" : "#94a3b8")
                                             font.bold: true
@@ -2466,7 +2385,7 @@ ApplicationWindow {
                             }
                             Text {
                                 Layout.fillWidth: true
-                                text: "Following the completion of Set 6, the journey culminates in three transformative integration steps:\n\n• Step 79 (Now 7): 'And, where are you now?' — The 7th and final present anchor, capturing where your awareness has arrived.\n• Step 80 (Compare 37): 'And, compare [Now 1] to [Now 7]' — Directly bridging where you stood at the very start to where you stand now.\n• Step 81 (Emergent Insight): 'And, what is the difference between what you knew at the start and what you know now?' — Synthesising the entire spiral into an indelible realization based on the 1–7 comparison.\n\nFinally, the session concludes with Finishing the Metrics, calibrating your post-session Clarity and Focus shifts."
+                                text: "Following the completion of Set 6, the journey culminates in three transformative integration steps:\n\n• Step 79 (Now 7): 'And, where are you now?' — The 7th and final present anchor, capturing where your awareness has arrived.\n• Step 80 (Compare 37): 'And, compare [Now 1] to [Now 7]' — Directly bridging where you stood at the very start to where you stand now.\n• Step 81 (Emergent Insight): 'And, what is the difference between what you knew at the start and what you know now?' — Synthesising the entire spiral into an indelible realization based on the 1–7 comparison.\n\nFinally, the session concludes with Finishing the Metrics, calibrating your post-session Clarity and Movement shifts."
                                 color: colForeground
                                 font.pixelSize: 13
                                 lineHeight: 1.4
@@ -2763,4 +2682,213 @@ ApplicationWindow {
             }
         }
     }
+
+    // -------------------------------------------------------------
+    // QUICK CHECK-IN MODAL OVERLAY (Ekology Metric Calibration)
+    // -------------------------------------------------------------
+    Rectangle {
+        id: quickCheckinModalOverlay
+        anchors.fill: parent
+        z: 9998
+        visible: isCheckinModalOpen
+        color: Qt.rgba(2/255, 6/255, 23/255, 0.92)
+
+        MouseArea {
+            anchors.fill: parent
+            // block clicks behind modal
+        }
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: Math.min(520, parent.width - 40)
+            height: checkinCol.implicitHeight + 48
+            radius: 20
+            color: "#0b1226"
+            border.width: 1.5
+            border.color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.4)
+
+            ColumnLayout {
+                id: checkinCol
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.margins: 28
+                spacing: 20
+
+                // Header
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 4
+
+                    RowLayout {
+                        spacing: 8
+                        Text { text: "🎯"; font.pixelSize: 22 }
+                        Text {
+                            text: "Quick Check-in"
+                            color: colForeground
+                            font.pixelSize: 20
+                            font.bold: true
+                        }
+                    }
+
+                    Text {
+                        text: "Take a moment to notice where you are right now."
+                        color: colMuted
+                        font.pixelSize: 13
+                    }
+                }
+
+                Rectangle { Layout.fillWidth: true; height: 1; color: colBorder }
+
+                // Clarity Slider Group (Foggy -> Clear)
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text {
+                            text: "Clarity"
+                            color: colCyan
+                            font.bold: true
+                            font.pixelSize: 14
+                        }
+                        Item { Layout.fillWidth: true }
+                        Text {
+                            text: preClarity + " / 10"
+                            color: colForeground
+                            font.bold: true
+                            font.pixelSize: 13
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+
+                        Text {
+                            text: "Foggy"
+                            color: colMuted
+                            font.italic: true
+                            font.pixelSize: 12
+                            Layout.preferredWidth: 44
+                        }
+
+                        Slider {
+                            Layout.fillWidth: true
+                            from: 1
+                            to: 10
+                            stepSize: 1
+                            value: preClarity
+                            onValueChanged: {
+                                preClarity = Math.round(value);
+                                if (currentStepIndex === 0) postClarity = preClarity;
+                            }
+                        }
+
+                        Text {
+                            text: "Clear"
+                            color: colMuted
+                            font.italic: true
+                            font.pixelSize: 12
+                            horizontalAlignment: Text.AlignRight
+                            Layout.preferredWidth: 44
+                        }
+                    }
+                }
+
+                // Movement Slider Group (Stuck -> Flowing)
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text {
+                            text: "Movement"
+                            color: colCyan
+                            font.bold: true
+                            font.pixelSize: 14
+                        }
+                        Item { Layout.fillWidth: true }
+                        Text {
+                            text: preMovement + " / 10"
+                            color: colForeground
+                            font.bold: true
+                            font.pixelSize: 13
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+
+                        Text {
+                            text: "Stuck"
+                            color: colMuted
+                            font.italic: true
+                            font.pixelSize: 12
+                            Layout.preferredWidth: 44
+                        }
+
+                        Slider {
+                            Layout.fillWidth: true
+                            from: 1
+                            to: 10
+                            stepSize: 1
+                            value: preMovement
+                            onValueChanged: {
+                                preMovement = Math.round(value);
+                                preFocus = preMovement;
+                                if (currentStepIndex === 0) {
+                                    postMovement = preMovement;
+                                    postFocus = preMovement;
+                                }
+                            }
+                        }
+
+                        Text {
+                            text: "Flowing"
+                            color: colMuted
+                            font.italic: true
+                            font.pixelSize: 12
+                            horizontalAlignment: Text.AlignRight
+                            Layout.preferredWidth: 44
+                        }
+                    }
+                }
+
+                Item { height: 6 }
+
+                // Begin Session Button
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 44
+                    radius: 10
+                    color: colGold
+
+                    RowLayout {
+                        anchors.centerIn: parent
+                        spacing: 8
+                        Text {
+                            text: "Begin Session →"
+                            color: "#020617"
+                            font.bold: true
+                            font.pixelSize: 14
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            isCheckinModalOpen = false;
+                            saveFinalMetrics();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 }

@@ -12,11 +12,14 @@ function generateMarkdownReport(session, flatSteps, questionLibrary) {
     lines.push("**Status**: " + (session.status === "completed" ? "✅ Completed" : "⏳ In Progress (Step " + Math.min(totalSteps, (session.current_step || 0) + 1) + "/" + totalSteps + ")"));
     lines.push("");
 
+    var preMov = session.pre_movement !== undefined ? session.pre_movement : (session.pre_focus || 5);
+    var postMov = session.post_movement !== undefined ? session.post_movement : (session.post_focus || 5);
+
     lines.push("### 1. Initial State & Calibration");
     lines.push("- **Where are you now?**: *" + (session.now_start || "(Unanswered)") + "*");
     lines.push("- **Pre-Session Calibration**:");
-    lines.push("  - Clarity: `" + (session.pre_clarity || 5) + "/10`");
-    lines.push("  - Present Focus: `" + (session.pre_focus || 5) + "/10`");
+    lines.push("  - Clarity: `" + (session.pre_clarity || 5) + "/10` (Foggy → Clear)");
+    lines.push("  - Movement: `" + preMov + "/10` (Stuck → Flowing)");
     lines.push("");
 
     lines.push("### 2. The Evolutionary Cycle (Sets 1 to 6)");
@@ -68,12 +71,12 @@ function generateMarkdownReport(session, flatSteps, questionLibrary) {
 
     lines.push("### 5. Integration & Metrics Shift");
     var dClarity = (session.post_clarity || 5) - (session.pre_clarity || 5);
-    var dFocus = (session.post_focus || 5) - (session.pre_focus || 5);
+    var dMovement = postMov - preMov;
     var fmtDiff = function(n) { return (n >= 0 ? "+" + n : "" + n); };
 
     lines.push("- **Post-Session Metrics**:");
-    lines.push("  - Clarity: `" + (session.post_clarity || 5) + "/10` (Shift: `" + fmtDiff(dClarity) + "`)");
-    lines.push("  - Present Focus: `" + (session.post_focus || 5) + "/10` (Shift: `" + fmtDiff(dFocus) + "`)");
+    lines.push("  - Clarity: `" + (session.post_clarity || 5) + "/10` (Shift: `" + fmtDiff(dClarity) + "`, Foggy → Clear)");
+    lines.push("  - Movement: `" + postMov + "/10` (Shift: `" + fmtDiff(dMovement) + "`, Stuck → Flowing)");
 
     if (session.tags && session.tags.length > 0) {
         lines.push("- **Emergence Themes**: `" + session.tags.join("`, `") + "`");
