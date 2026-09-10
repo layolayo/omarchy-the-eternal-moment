@@ -1,8 +1,10 @@
-# The Eternal Moment: Process #4 · 🌌 Omarchy Oracle
+# The Eternal Moment: Process #4 · 🌌 Full-Screen Desktop Oracle
 
-An authentic, meditative **Emergent Knowledge: Process #4 ("The Eternal Moment of Now")** bar widget and personal development oracle for the **Omarchy** desktop environment.
+An authentic, immersive, full-screen **Emergent Knowledge: Process #4 ("The Eternal Moment of Now")** application and personal development oracle for the **Omarchy** desktop environment.
 
-Built with **pure QML / Quickshell** and powered by an embedded, zero-dependency **SQLite LocalStorage** engine.
+Created by **Matthew Hudson** and adapted from **Universal Conscious Practice by K. Penday**, grounded in **David Grove's Emergent Knowledge & Clean Space** cosmology.
+
+Official Reference & Platform: [ekology.co.uk](https://ekology.co.uk)
 
 <p align="center">
   <img src="preview.png" alt="The Eternal Moment: Process #4 Preview Artwork" width="100%" />
@@ -10,60 +12,56 @@ Built with **pure QML / Quickshell** and powered by an embedded, zero-dependency
 
 ---
 
-## What is Process #4?
+## Why a Full-Screen Application?
 
-Adapted from **Universal Conscious Practice by K. Penday** and rooted in the **Emergent Knowledge** and **Clean Space** methodologies pioneered by **David Grove**:
-
-1. **Describe Now**: Anchor awareness into your immediate internal topography (*"And, where are you now?"*).
-2. **Locate a Past**: Access a memory, prior state, or historical condition (*"And, where [else] have you been?"*).
-3. **Compare to Now**: Observe similarities, differences, and resonances (*"And, compare [A] to [B]"*).
-4. **Locate a Future**: Access a projection, possibility, or future state (*"And, where [else] might you be?"*).
-5. **Compare to Now**: Re-anchor to the present center (*"And, compare [A] to [B]"*).
-6. **Iterative Emergence (The Power of Six)**: Repeat this triad three times per developmental Set. Across six evolutionary Sets, the system naturally shifts.
-7. **Harvest the Difference**: The closing inquiry captures the non-linear transformation:
-   > *"And, what is the difference between what you knew at the start and what you know now?"*
+Process #4 is not a quick status indicator—it is an expansive journey of consciousness across the axis of time. By externalizing your internal landscape into a spacious full-screen space-time environment, your awareness can oscillate cleanly between the sovereign present, retrieved past memories, and emerging future potential without desktop distractions.
 
 ---
 
-## Features
+## Key Features
 
-- **🌌 The Chamber (Guided Inquiry)**:
-  - Clean, distraction-free typographic cards for every step.
-  - Dynamic question contextualization (auto-inserts previous past/future phrases into comparison questions).
-  - Pre-session clarity & focus calibration sliders.
-  - Keyboard shortcuts (`Ctrl+Enter` or `Shift+Enter`) for rapid, natural reflection flow.
+- **🌌 The Chamber (Spacious Guided Session)**:
+  - Expansive typographic layout optimized for contemplation.
+  - Dynamic question contextualization (auto-inserts previous past and future phrases into comparison inquiries).
+  - Pre-session and post-session focus and clarity calibration sliders.
+  - Rapid keyboard flow: `Ctrl+Enter` or `Shift+Enter` to reflect and advance.
+  - Press `F11` anytime to toggle full-screen immersion.
 - **💾 Streamlined Local SQLite Database**:
-  - Uses native `QtQuick.LocalStorage` (embedded SQLite3).
-  - Zero external servers, daemons, or Python prerequisites.
-  - Crash-proof auto-saving at every single step: close your laptop mid-session and resume exactly where you left off.
+  - Powered by native `QtQuick.LocalStorage` (embedded SQLite3).
+  - Zero external servers, Python daemons, or background containers.
+  - Crash-proof auto-saving: close the app mid-session and resume exactly where you left off.
 - **📜 Personal Development Archive**:
-  - Browse historical sessions, review past breakthroughs, and inspect how your consciousness evolved over months.
-  - Resume in-progress drafts or re-read completed session reports.
-- **📋 Clean Markdown Reporting & Export**:
-  - One-click `📋 Copy Markdown` to clipboard for Obsidian, Notion, or personal journals.
-  - One-click `💾 Save to Docs` (`~/Documents/Process4_EternalMoment_*.md`).
-- **🐦 Direct-to-X (Twitter) Sharing**:
-  - Zero API tokens or subscription keys required.
-  - Opens your default web browser directly into the X composer with a curated reflection snippet and `#EmergentKnowledge #Process4` tags.
+  - Browse your entire history of past sessions with timestamps, initial states, and emergent shifts.
+  - Track how your awareness, clarity, and themes evolve over time.
+  - Re-read past breakthrough transcripts or resume in-progress journeys.
+- **📋 Structured Reporting & Social Sharing**:
+  - `📋 Copy Markdown`: One-click copy for Obsidian, Notion, or personal notebooks.
+  - `💾 Save to Docs`: Exports a clean timestamped report to `~/Documents/`.
+  - `🐦 Share on X`: Direct Web Intent opens your default browser into the X composer with a curated highlight quote and `#EmergentKnowledge #Process4` tags.
+- **📖 Comprehensive Built-in Instruction Manual & Ekology Reference**:
+  - Full documentation of the 6-Set cycle and the Power of Six.
+  - Clean Language definitions for *Where*, *Might*, and *Compare*.
+  - Historical attribution and direct links to Matthew Hudson's [ekology.co.uk](https://ekology.co.uk).
 
 ---
 
-## Installation
+## How to Launch
 
-### Via Omarchy CLI
+### 1. Application Launcher (Super Key)
+Search for **The Eternal Moment** in your Omarchy / Hyprland application menu (Rofi, Walker, or Omarchy menu).
+
+### 2. Command Line
+Run anywhere:
 ```bash
-omarchy plugin add https://github.com/layolayo/omarchy-the-eternal-moment.git --enable
+eternal-moment
 ```
 
-### Manual Installation
-Clone this repository into your user plugins folder:
+### 3. As an Omarchy Shell Plugin
 ```bash
-git clone https://github.com/layolayo/omarchy-the-eternal-moment.git ~/.config/omarchy/plugins/io.github.layolayo.eternal-moment
-omarchy-shell shell rescanPlugins
-omarchy plugin enable io.github.layolayo.eternal-moment --section right
+omarchy plugin enable io.github.layolayo.eternal-moment
 ```
 
 ---
 
 ## License
-MIT License © Matthew Hudson
+MIT License © Matthew Hudson · [ekology.co.uk](https://ekology.co.uk)
