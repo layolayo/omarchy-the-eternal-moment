@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls as Controls
+import QtCore
 import Quickshell
 import Quickshell.Io
 import qs.Commons
@@ -192,9 +193,14 @@ Panel {
     var d = new Date();
     var ts = d.getFullYear() + "" + String(d.getMonth() + 1).padStart(2, '0') + "" + String(d.getDate()).padStart(2, '0') + "_" + String(d.getHours()).padStart(2, '0') + "" + String(d.getMinutes()).padStart(2, '0');
     var filename = "Process4_EternalMoment_" + ts + ".md";
-    var cmd = "cat << 'EOF' > ~/Documents/" + filename + "\n" + md + "\nEOF";
+    var docsLoc = StandardPaths.writableLocation(StandardPaths.DocumentsLocation).replace(/^file:\/\//, "");
+    if (!docsLoc) {
+      docsLoc = StandardPaths.writableLocation(StandardPaths.HomeLocation).replace(/^file:\/\//, "") + "/Documents";
+    }
+    var targetPath = docsLoc + "/" + filename;
+    var cmd = "mkdir -p '" + docsLoc.replace(/'/g, "'\\''") + "' && cat << 'EOF' > '" + targetPath.replace(/'/g, "'\\''") + "'\n" + md + "\nEOF";
     Quickshell.execDetached(["bash", "-c", cmd]);
-    copyStatusMessage = "Saved to ~/Documents/" + filename;
+    copyStatusMessage = "Saved to " + targetPath;
   }
 
   function shareHighlightToX() {

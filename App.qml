@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
+import QtCore
 import "ProcessData.js" as ProcessData
 import "Database.js" as Database
 import "Report.js" as Report
@@ -213,6 +214,22 @@ ApplicationWindow {
         showCanvasToast("Full report copied to clipboard!");
     }
 
+    function getPicturesDirectory() {
+        var loc = StandardPaths.writableLocation(StandardPaths.PicturesLocation).replace(/^file:\/\//, "");
+        if (!loc) {
+            loc = StandardPaths.writableLocation(StandardPaths.HomeLocation).replace(/^file:\/\//, "") + "/Pictures";
+        }
+        return loc + "/TheEternalMoment";
+    }
+
+    function getDocumentsDirectory() {
+        var loc = StandardPaths.writableLocation(StandardPaths.DocumentsLocation).replace(/^file:\/\//, "");
+        if (!loc) {
+            loc = StandardPaths.writableLocation(StandardPaths.HomeLocation).replace(/^file:\/\//, "") + "/Documents";
+        }
+        return loc;
+    }
+
     function exportReportToFile() {
         var target = viewingSession || Database.loadSession(activeSessionId);
         if (!target) return;
@@ -220,19 +237,20 @@ ApplicationWindow {
         var d = new Date();
         var ts = d.getFullYear() + "" + String(d.getMonth() + 1).padStart(2, '0') + "" + String(d.getDate()).padStart(2, '0') + "_" + String(d.getHours()).padStart(2, '0') + "" + String(d.getMinutes()).padStart(2, '0');
         var filename = "Process4_EternalMoment_" + ts + ".md";
-        executeShellCommand("mkdir -p ~/Documents && cat << 'EOF' > ~/Documents/" + filename + "\n" + md + "\nEOF");
-        showCanvasToast("Report saved to ~/Documents/" + filename);
+        var docsDir = getDocumentsDirectory();
+        executeShellCommand("mkdir -p " + escapeShell(docsDir) + " && cat << 'EOF' > " + escapeShell(docsDir + "/" + filename) + "\n" + md + "\nEOF");
+        showCanvasToast("Report saved to " + filename);
     }
 
     function captureSpiralSnapshot(callback) {
-        var dir = "/home/matthew/Pictures/TheEternalMoment";
+        var dir = getPicturesDirectory();
         executeShellCommand("mkdir -p " + escapeShell(dir));
 
         var d = new Date();
         var dateStr = d.getFullYear() + "" + String(d.getMonth() + 1).padStart(2, '0') + "" + String(d.getDate()).padStart(2, '0') + "_" + String(d.getHours()).padStart(2, '0') + "" + String(d.getMinutes()).padStart(2, '0') + "" + String(d.getSeconds()).padStart(2, '0');
         var filename = "eternity-" + dateStr + ".png";
         var permanentPath = dir + "/" + filename;
-        var tmpPath = "/tmp/eternal_spiral_share.png";
+        var tmpPath = StandardPaths.writableLocation(StandardPaths.TempLocation).replace(/^file:\/\//, "") + "/eternal_spiral_share.png";
 
         spiralCanvas.grabToImage(function(result) {
             result.saveToFile(tmpPath);
@@ -277,7 +295,7 @@ ApplicationWindow {
     function takeCanvasSnapshot() {
         captureSpiralSnapshot(function(tmpPath, permanentPath, filename) {
             executeShellCommand("wl-copy -t image/png < " + escapeShell(permanentPath));
-            showCanvasToast("📷 Snapshot saved to ~/Pictures/TheEternalMoment/" + filename);
+            showCanvasToast("📷 Snapshot saved to " + permanentPath);
         });
     }
 
@@ -895,265 +913,279 @@ ApplicationWindow {
                     border.width: 1
                     border.color: colBorder
 
-                    ScrollView {
+                    ColumnLayout {
                         anchors.fill: parent
                         anchors.margins: 16
-                        contentWidth: availableWidth
-                        clip: true
+                        spacing: 12
 
-                        Column {
-                            width: parent.width
-                            spacing: 12
+                        // Top scrollable guided inquiry section
+                        ScrollView {
+                            id: rightPanelScroll
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            contentWidth: availableWidth
+                            clip: true
 
-                            // Subtitle & Header
-                            Item {
-                                width: parent.width
-                                height: headerCol.implicitHeight
+                            Column {
+                                width: rightPanelScroll.availableWidth
+                                spacing: 12
 
-                                Column {
-                                    id: headerCol
-                                    width: parent.width
-                                    spacing: 2
-
-                                    Text {
-                                        text: "EMERGENT KNOWLEDGE | PROCESS #4"
-                                        color: colCyan
-                                        font.pixelSize: 10
-                                        font.bold: true
-                                        font.letterSpacing: 1.2
-                                    }
-
-                                    Text {
-                                        text: "THE ETERNAL MOMENT"
-                                        color: colForeground
-                                        font.pixelSize: 18
-                                        font.bold: true
-                                        font.family: "Outfit, Inter, sans-serif"
-                                    }
-                                }
-                            }
-
-                            // Authentic Guidance Box (from eternity_app.php)
-                            Rectangle {
-                                width: parent.width
-                                implicitHeight: guideCol.implicitHeight + 20
-                                radius: 10
-                                color: "#090d22"
-                                border.width: 1
-                                border.color: "#1e293b"
-
-                                Column {
-                                    id: guideCol
-                                    anchors.top: parent.top
-                                    anchors.left: parent.left
-                                    anchors.right: parent.right
-                                    anchors.margins: 10
-                                    spacing: 4
-
-                                    Text {
-                                        width: parent.width
-                                        text: "‘Where’ can signify any, some or all of these:"
-                                        color: colForeground
-                                        font.bold: true
-                                        font.pixelSize: 11
-                                        wrapMode: Text.WordWrap
-                                    }
-                                    Text { width: parent.width; text: "• A situation, state or condition"; color: colMuted; font.pixelSize: 11 }
-                                    Text { width: parent.width; text: "• A place or viewpoint"; color: colMuted; font.pixelSize: 11 }
-                                    Text { width: parent.width; text: "• An identity or attitude"; color: colMuted; font.pixelSize: 11 }
-                                    Text { width: parent.width; text: "• A mood or emotion"; color: colMuted; font.pixelSize: 11 }
-                                    Text {
-                                        width: parent.width
-                                        text: "in that moment of time."
-                                        color: colCyan
-                                        font.pixelSize: 10
-                                        font.italic: true
-                                    }
-                                }
-                            }
-
-                            // Show Outer Helix Toggle Checkbox
-                            Row {
-                                width: parent.width
-                                height: 26
-                                spacing: 8
-
-                                CheckBox {
-                                    id: helixToggle
-                                    checked: true
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    onCheckedChanged: {
-                                        SpiralEngine.toggleHelix(checked);
-                                        spiralCanvas.requestPaint();
-                                    }
-                                }
-                                Text {
-                                    text: "Show Outer Helix Ribbon"
-                                    color: colMuted
-                                    font.pixelSize: 11
-                                    anchors.verticalCenter: parent.verticalCenter
-                                }
-                            }
-
-                            // Step & Set Tracker
-                            Row {
-                                width: parent.width
-                                height: 26
-                                spacing: 10
-
-                                Rectangle {
-                                    height: 22
-                                    width: setBadge.implicitWidth + 14
-                                    radius: 11
-                                    color: "#0e2238"
-                                    border.width: 1
-                                    border.color: colCyan
-                                    anchors.verticalCenter: parent.verticalCenter
-
-                                    Text {
-                                        id: setBadge
-                                        anchors.centerIn: parent
-                                        text: "SET " + currentSet + " OF 6"
-                                        color: colCyan
-                                        font.bold: true
-                                        font.pixelSize: 10
-                                    }
-                                }
-
+                                // Subtitle & Header
                                 Item {
-                                    width: Math.max(20, parent.width - (setBadge.implicitWidth + 14) - stepCountText.implicitWidth - 28)
-                                    height: 6
-                                    anchors.verticalCenter: parent.verticalCenter
+                                    width: parent.width
+                                    height: headerCol.implicitHeight
 
-                                    Rectangle {
-                                        anchors.fill: parent
-                                        radius: 3
-                                        color: "#1e293b"
+                                    Column {
+                                        id: headerCol
+                                        width: parent.width
+                                        spacing: 2
 
-                                        Rectangle {
-                                            height: parent.height
-                                            radius: 3
-                                            width: parent.width * Math.min(1.0, (currentStepIndex + 1) / Math.max(1, flatSteps.length))
-                                            color: colGold
+                                        Text {
+                                            text: "EMERGENT KNOWLEDGE | PROCESS #4"
+                                            color: colCyan
+                                            font.pixelSize: 10
+                                            font.bold: true
+                                            font.letterSpacing: 1.2
+                                        }
+
+                                        Text {
+                                            text: "THE ETERNAL MOMENT"
+                                            color: colForeground
+                                            font.pixelSize: 18
+                                            font.bold: true
+                                            font.family: "Outfit, Inter, sans-serif"
                                         }
                                     }
                                 }
 
-                                Text {
-                                    id: stepCountText
-                                    text: "Step " + (currentStepIndex + 1) + "/" + flatSteps.length
-                                    color: colMuted
-                                    font.pixelSize: 11
-                                    anchors.verticalCenter: parent.verticalCenter
+                                // Authentic Guidance Box (from eternity_app.php)
+                                Rectangle {
+                                    width: parent.width
+                                    implicitHeight: guideCol.implicitHeight + 20
+                                    radius: 10
+                                    color: "#090d22"
+                                    border.width: 1
+                                    border.color: "#1e293b"
+
+                                    Column {
+                                        id: guideCol
+                                        anchors.top: parent.top
+                                        anchors.left: parent.left
+                                        anchors.right: parent.right
+                                        anchors.margins: 10
+                                        spacing: 4
+
+                                        Text {
+                                            width: parent.width
+                                            text: "‘Where’ can signify any, some or all of these:"
+                                            color: colForeground
+                                            font.bold: true
+                                            font.pixelSize: 11
+                                            wrapMode: Text.WordWrap
+                                        }
+                                        Text { width: parent.width; text: "• A situation, state or condition"; color: colMuted; font.pixelSize: 11 }
+                                        Text { width: parent.width; text: "• A place or viewpoint"; color: colMuted; font.pixelSize: 11 }
+                                        Text { width: parent.width; text: "• An identity or attitude"; color: colMuted; font.pixelSize: 11 }
+                                        Text { width: parent.width; text: "• A mood or emotion"; color: colMuted; font.pixelSize: 11 }
+                                        Text {
+                                            width: parent.width
+                                            text: "in that moment of time."
+                                            color: colCyan
+                                            font.pixelSize: 10
+                                            font.italic: true
+                                        }
+                                    }
                                 }
-                            }
 
-                            // Inquiry Card
-                            Rectangle {
-                                width: parent.width
-                                implicitHeight: inqCol.implicitHeight + 24
-                                radius: 12
-                                color: colCardBg
-                                border.width: 1.5
-                                border.color: stepTypeColor(currentStepType)
-
-                                Column {
-                                    id: inqCol
-                                    anchors.top: parent.top
-                                    anchors.left: parent.left
-                                    anchors.right: parent.right
-                                    anchors.margins: 12
+                                // Show Outer Helix Toggle Checkbox
+                                Row {
+                                    width: parent.width
+                                    height: 26
                                     spacing: 8
 
-                                    Row {
-                                        spacing: 8
+                                    CheckBox {
+                                        id: helixToggle
+                                        checked: true
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        onCheckedChanged: {
+                                            SpiralEngine.toggleHelix(checked);
+                                            spiralCanvas.requestPaint();
+                                        }
+                                    }
+                                    Text {
+                                        text: "Show Outer Helix Ribbon"
+                                        color: colMuted
+                                        font.pixelSize: 11
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                }
+
+                                // Step & Set Tracker
+                                Row {
+                                    width: parent.width
+                                    height: 26
+                                    spacing: 10
+
+                                    Rectangle {
+                                        height: 22
+                                        width: setBadge.implicitWidth + 14
+                                        radius: 11
+                                        color: "#0e2238"
+                                        border.width: 1
+                                        border.color: colCyan
+                                        anchors.verticalCenter: parent.verticalCenter
+
+                                        Text {
+                                            id: setBadge
+                                            anchors.centerIn: parent
+                                            text: "SET " + currentSet + " OF 6"
+                                            color: colCyan
+                                            font.bold: true
+                                            font.pixelSize: 10
+                                        }
+                                    }
+
+                                    Item {
+                                        width: Math.max(20, parent.width - (setBadge.implicitWidth + 14) - stepCountText.implicitWidth - 28)
+                                        height: 6
+                                        anchors.verticalCenter: parent.verticalCenter
+
                                         Rectangle {
-                                            height: 20
-                                            width: badgeLabel.implicitWidth + 14
-                                            radius: 10
-                                            color: "#131b38"
-                                            border.width: 1
-                                            border.color: stepTypeColor(currentStepType)
+                                            anchors.fill: parent
+                                            radius: 3
+                                            color: "#1e293b"
+
+                                            Rectangle {
+                                                height: parent.height
+                                                radius: 3
+                                                width: parent.width * Math.min(1.0, (currentStepIndex + 1) / Math.max(1, flatSteps.length))
+                                                color: colGold
+                                            }
+                                        }
+                                    }
+
+                                    Text {
+                                        id: stepCountText
+                                        text: "Step " + (currentStepIndex + 1) + "/" + flatSteps.length
+                                        color: colMuted
+                                        font.pixelSize: 11
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                }
+
+                                // Inquiry Card
+                                Rectangle {
+                                    width: parent.width
+                                    implicitHeight: inqCol.implicitHeight + 24
+                                    radius: 12
+                                    color: colCardBg
+                                    border.width: 1.5
+                                    border.color: stepTypeColor(currentStepType)
+
+                                    Column {
+                                        id: inqCol
+                                        anchors.top: parent.top
+                                        anchors.left: parent.left
+                                        anchors.right: parent.right
+                                        anchors.margins: 12
+                                        spacing: 8
+
+                                        Row {
+                                            spacing: 8
+                                            Rectangle {
+                                                height: 20
+                                                width: badgeLabel.implicitWidth + 14
+                                                radius: 10
+                                                color: "#131b38"
+                                                border.width: 1
+                                                border.color: stepTypeColor(currentStepType)
+
+                                                Text {
+                                                    id: badgeLabel
+                                                    anchors.centerIn: parent
+                                                    text: stepTypeBadge(currentStepType)
+                                                    color: stepTypeColor(currentStepType)
+                                                    font.bold: true
+                                                    font.pixelSize: 10
+                                                }
+                                            }
 
                                             Text {
-                                                id: badgeLabel
-                                                anchors.centerIn: parent
-                                                text: stepTypeBadge(currentStepType)
-                                                color: stepTypeColor(currentStepType)
-                                                font.bold: true
-                                                font.pixelSize: 10
+                                                text: currentStep ? (ProcessData.questionLibrary[currentStep.key] ? ProcessData.questionLibrary[currentStep.key].label : "") : ""
+                                                color: colMuted
+                                                font.pixelSize: 11
+                                                anchors.verticalCenter: parent.verticalCenter
                                             }
                                         }
 
                                         Text {
-                                            text: currentStep ? (ProcessData.questionLibrary[currentStep.key] ? ProcessData.questionLibrary[currentStep.key].label : "") : ""
-                                            color: colMuted
+                                            width: parent.width
+                                            text: currentQuestionText
+                                            color: colForeground
+                                            font.pixelSize: 16
+                                            font.bold: true
+                                            font.family: "Outfit, Inter, sans-serif"
+                                            wrapMode: Text.WordWrap
+                                        }
+
+                                        // Authentic Precursor / Example Text
+                                        Text {
+                                            width: parent.width
+                                            text: ProcessData.getStepExample(currentStepType)
+                                            color: colCyan
                                             font.pixelSize: 11
-                                            anchors.verticalCenter: parent.verticalCenter
+                                            font.italic: true
+                                            wrapMode: Text.WordWrap
+                                            visible: text !== ""
                                         }
                                     }
-
-                                    Text {
-                                        width: parent.width
-                                        text: currentQuestionText
-                                        color: colForeground
-                                        font.pixelSize: 16
-                                        font.bold: true
-                                        font.family: "Outfit, Inter, sans-serif"
-                                        wrapMode: Text.WordWrap
-                                    }
-
-                                    // Authentic Precursor / Example Text
-                                    Text {
-                                        width: parent.width
-                                        text: ProcessData.getStepExample(currentStepType)
-                                        color: colCyan
-                                        font.pixelSize: 11
-                                        font.italic: true
-                                        wrapMode: Text.WordWrap
-                                        visible: text !== ""
-                                    }
                                 }
-                            }
 
-                            // Answer Input Card
-                            Rectangle {
-                                width: parent.width
-                                height: 115
-                                radius: 12
-                                color: "#090d1f"
-                                border.width: 1
-                                border.color: colBorder
+                                // Answer Input Card
+                                Rectangle {
+                                    width: parent.width
+                                    height: 115
+                                    radius: 12
+                                    color: "#090d1f"
+                                    border.width: 1
+                                    border.color: colBorder
 
-                                ScrollView {
-                                    anchors.fill: parent
-                                    anchors.margins: 10
-                                    clip: true
+                                    ScrollView {
+                                        anchors.fill: parent
+                                        anchors.margins: 10
+                                        clip: true
 
-                                    TextArea {
-                                        id: answerInputBox
-                                        width: parent.width
-                                        text: answerDraft
-                                        placeholderText: ProcessData.getPlaceholder(currentStepType)
-                                        placeholderTextColor: "#64748b"
-                                        color: colForeground
-                                        font.pixelSize: 13
-                                        font.family: "Inter, sans-serif"
-                                        wrapMode: TextArea.Wrap
-                                        background: null
-                                        onTextChanged: answerDraft = text
+                                        TextArea {
+                                            id: answerInputBox
+                                            width: parent.width
+                                            text: answerDraft
+                                            placeholderText: ProcessData.getPlaceholder(currentStepType)
+                                            placeholderTextColor: "#64748b"
+                                            color: colForeground
+                                            font.pixelSize: 13
+                                            font.family: "Inter, sans-serif"
+                                            wrapMode: TextArea.Wrap
+                                            background: null
+                                            onTextChanged: answerDraft = text
 
-                                        Keys.onReturnPressed: function(event) {
-                                            if (event.modifiers & Qt.ShiftModifier) {
-                                                event.accepted = false;
-                                            } else {
-                                                advanceStep();
-                                                event.accepted = true;
+                                            Keys.onReturnPressed: function(event) {
+                                                if (event.modifiers & Qt.ShiftModifier) {
+                                                    event.accepted = false;
+                                                } else {
+                                                    advanceStep();
+                                                    event.accepted = true;
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
+                        }
+
+                        // Pinned Bottom Section: Launch button and all controls below it in exact order
+                        Column {
+                            Layout.fillWidth: true
+                            spacing: 10
 
                             // Dynamic Action Button
                             Rectangle {
@@ -2036,7 +2068,7 @@ ApplicationWindow {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                showCanvasToast("💾 Saved to ~/Pictures/TheEternalMoment/");
+                                showCanvasToast("💾 Saved to " + getPicturesDirectory());
                             }
                         }
                     }
