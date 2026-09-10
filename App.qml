@@ -427,9 +427,8 @@ ApplicationWindow {
             Layout.fillHeight: true
             Layout.preferredWidth: isSidebarOpen ? 260 : 0
             clip: true
-            visible: width > 0.5
             color: colSidebarBg
-            border.width: width > 1 ? 1 : 0
+            border.width: isSidebarOpen ? 1 : 0
             border.color: colBorder
 
             Behavior on Layout.preferredWidth {
