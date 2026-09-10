@@ -1274,13 +1274,16 @@ ApplicationWindow {
                                     border.color: colBorder
 
                                     ScrollView {
+                                        id: answerScroll
                                         anchors.fill: parent
                                         anchors.margins: 10
                                         clip: true
+                                        contentWidth: availableWidth
+                                        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
                                         TextArea {
                                             id: answerInputBox
-                                            width: parent.width
+                                            width: answerScroll.availableWidth
                                             text: answerDraft
                                             placeholderText: ProcessData.getPlaceholder(currentStepType)
                                             placeholderTextColor: "#64748b"
@@ -1470,12 +1473,15 @@ ApplicationWindow {
                 }
 
                 ScrollView {
+                    id: archiveScroll
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
+                    contentWidth: availableWidth
+                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
                     ColumnLayout {
-                        width: parent.width
+                        width: archiveScroll.availableWidth
                         spacing: 12
 
                         Repeater {
@@ -1819,12 +1825,16 @@ ApplicationWindow {
                     border.color: colBorder
 
                     ScrollView {
+                        id: reportScrollView
                         anchors.fill: parent
                         anchors.margins: 20
                         clip: true
+                        contentWidth: availableWidth
+                        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
                         Text {
-                            width: parent.width
+                            id: reportText
+                            width: reportScrollView.availableWidth
                             text: {
                                 var target = viewingSession || Database.loadSession(activeSessionId);
                                 return Report.generateMarkdownReport(target, flatSteps, ProcessData.questionLibrary);
@@ -1874,12 +1884,15 @@ ApplicationWindow {
                     border.color: colBorder
 
                     ScrollView {
+                        id: manualScrollView
                         anchors.fill: parent
                         anchors.margins: 24
                         clip: true
+                        contentWidth: availableWidth
+                        ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
                         ColumnLayout {
-                            width: parent.width - 24
+                            width: manualScrollView.availableWidth
                             spacing: 18
 
                             Text {
