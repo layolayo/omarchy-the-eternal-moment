@@ -604,50 +604,6 @@ Panel {
                 }
               }
 
-              // Quick Check-in pill for Step 0
-              BorderSurface {
-                width: parent.width
-                implicitHeight: checkinPillRow.implicitHeight + Style.space(12)
-                radius: Style.cornerRadius - 2
-                color: Qt.rgba(root.cyanColor.r, root.cyanColor.g, root.cyanColor.b, 0.1)
-                borderSpec: Border.flat(Qt.rgba(root.cyanColor.r, root.cyanColor.g, root.cyanColor.b, 0.35), 1)
-                visible: root.currentStepIndex === 0
-
-                Row {
-                  id: checkinPillRow
-                  width: parent.width - Style.space(16)
-                  anchors.centerIn: parent
-                  spacing: Style.space(8)
-
-                  Text { text: "🎯"; font.pixelSize: Style.space(13) }
-                  Text {
-                    text: "Quick Check-in:"
-                    color: root.cyanColor
-                    font.family: root.fontFamily
-                    font.bold: true
-                    font.pixelSize: Style.space(11)
-                  }
-                  Text {
-                    text: "Clarity (Foggy — Clear) • Movement (Stuck — Flowing)"
-                    color: root.foreground
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.space(11)
-                  }
-                  Text {
-                    text: "✎"
-                    color: root.goldColor
-                    font.family: root.fontFamily
-                    font.bold: true
-                    font.pixelSize: Style.space(11)
-                  }
-                }
-
-                MouseArea {
-                  anchors.fill: parent
-                  cursorShape: Qt.PointingHandCursor
-                  onClicked: root.isCheckinModalOpen = true
-                }
-              }
             }
           }
 

@@ -1347,33 +1347,6 @@ ApplicationWindow {
                                             }
                                         }
 
-                                        // Quick Check-in trigger pill (on Step 0)
-                                        Rectangle {
-                                            width: parent.width
-                                            height: 32
-                                            radius: 8
-                                            color: checkinPillHover.containsMouse ? "#2606b6d4" : "#1406b6d4"
-                                            border.width: 1
-                                            border.color: colCyan
-                                            visible: currentStepIndex === 0
-
-                                            RowLayout {
-                                                anchors.centerIn: parent
-                                                spacing: 8
-                                                Text { text: "🎯"; font.pixelSize: 13 }
-                                                Text { text: "Quick Check-in:"; color: colCyan; font.bold: true; font.pixelSize: 11 }
-                                                Text { text: "Clarity (Foggy — Clear) • Movement (Stuck — Flowing)"; color: colForeground; font.pixelSize: 11 }
-                                                Text { text: "✎"; color: colGold; font.bold: true; font.pixelSize: 11 }
-                                            }
-
-                                            MouseArea {
-                                                id: checkinPillHover
-                                                anchors.fill: parent
-                                                hoverEnabled: true
-                                                cursorShape: Qt.PointingHandCursor
-                                                onClicked: isCheckinModalOpen = true
-                                            }
-                                        }
                                     }
                                 }
 
