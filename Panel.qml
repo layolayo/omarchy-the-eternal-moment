@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls as Controls
+import QtQuick.Layouts
 import QtCore
 import Quickshell
 import Quickshell.Io
@@ -687,22 +688,22 @@ Panel {
                 }
               }
 
-              Row {
+              RowLayout {
                 width: parent.width
 
                 Text {
-                  anchors.verticalCenter: parent.verticalCenter
+                  Layout.alignment: Qt.AlignVCenter
                   text: "Ctrl+Enter or Shift+Enter to advance"
                   color: root.mutedColor
                   font.family: root.fontFamily
                   font.pixelSize: Style.space(11)
                 }
 
-                Item { Layout.fillWidth: true; height: 1; width: parent.width - btnAdv.implicitWidth - Style.space(220) }
+                Item { Layout.fillWidth: true }
 
                 Button {
                   id: btnAdv
-                  text: (root.currentStepIndex + 1 >= root.flatSteps.length ? "Finish with Metrics ★" : "Reflect & Next →")
+                  text: ProcessData.getButtonText(root.currentStepIndex, root.currentStepType)
                   accent: root.goldColor
                   bordered: true
                   onClicked: root.advanceStep()
@@ -977,7 +978,7 @@ Panel {
                 anchors.centerIn: parent
                 spacing: Style.space(6)
 
-                Row {
+                RowLayout {
                   width: parent.width
 
                   Text {
@@ -986,8 +987,6 @@ Panel {
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.caption
                   }
-
-                  Item { width: Style.space(10); height: 1 }
 
                   Rectangle {
                     height: Style.space(16)
@@ -1007,7 +1006,7 @@ Panel {
                     }
                   }
 
-                  Item { Layout.fillWidth: true; height: 1; width: parent.width - btnRow.implicitWidth - Style.space(180) }
+                  Item { Layout.fillWidth: true }
 
                   Row {
                     id: btnRow

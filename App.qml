@@ -1345,6 +1345,8 @@ ApplicationWindow {
                                                     visible: (answers && answers[79]) ? true : false
                                                 }
                                             }
+                                        }
+
                                         // Quick Check-in trigger pill (on Step 0)
                                         Rectangle {
                                             width: parent.width
@@ -2860,5 +2862,4 @@ ApplicationWindow {
             }
         }
     }
-}
 }
