@@ -1,6 +1,6 @@
-# The Eternal Moment: Process #4 · 🌌 Full-Screen Desktop Oracle
+# The Eternal Moment: Process #4 · 🌌 Personal Development Tool
 
-An authentic, immersive, full-screen **Emergent Knowledge: Process #4 ("The Eternal Moment of Now")** application and personal development oracle for the **Omarchy** desktop environment.
+An authentic, immersive, full-screen **Emergent Knowledge: Process #4 ("The Eternal Moment of Now")** personal development and mindfulness application for the **Omarchy** desktop environment.
 
 Created by **Matthew Hudson** and adapted from **Universal Conscious Practice by K. Penday**, grounded in **David Grove's Emergent Knowledge & Clean Space** cosmology.
 
