@@ -540,9 +540,9 @@ ApplicationWindow {
                 height: 34
                 radius: 8
                 z: 100
-                color: fullscreenHover.containsMouse ? Qt.rgba(255, 255, 255, 0.12) : Qt.rgba(255, 255, 255, 0.05)
+                color: fullscreenHover.containsMouse ? "#26ffffff" : "#12ffffff"
                 border.width: 1
-                border.color: fullscreenHover.containsMouse ? colCyan : Qt.rgba(255, 255, 255, 0.1)
+                border.color: fullscreenHover.containsMouse ? colCyan : "#334155"
 
                 Text {
                     anchors.centerIn: parent
@@ -657,9 +657,9 @@ ApplicationWindow {
                         height: 28
                         width: rotHintText.implicitWidth + 24
                         radius: 14
-                        color: Qt.rgba(2, 6, 23, 0.85)
+                        color: "#020617"
                         border.width: 1
-                        border.color: Qt.rgba(255, 255, 255, 0.12)
+                        border.color: "#334155"
 
                         Text {
                             id: rotHintText
@@ -675,71 +675,83 @@ ApplicationWindow {
                 // 1B. RIGHT: AUTHENTIC CONTROL PANEL & GUIDED INQUIRY
                 // ---------------------------------------------------------
                 Rectangle {
-                    Layout.preferredWidth: 430
+                    Layout.preferredWidth: 420
                     Layout.fillHeight: true
-                    color: Qt.rgba(6, 9, 25, 0.95)
+                    color: colSidebarBg
                     border.width: 1
                     border.color: colBorder
 
-                    Flickable {
+                    ScrollView {
                         anchors.fill: parent
-                        anchors.margins: 20
-                        contentHeight: controlPanelCol.implicitHeight + 20
+                        anchors.margins: 16
+                        contentWidth: availableWidth
                         clip: true
 
-                        ColumnLayout {
-                            id: controlPanelCol
+                        Column {
                             width: parent.width
                             spacing: 12
 
                             // Subtitle & Header
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 2
+                            Item {
+                                width: parent.width
+                                height: headerCol.implicitHeight
 
-                                Text {
-                                    text: "EMERGENT KNOWLEDGE | PROCESS #4"
-                                    color: colCyan
-                                    font.pixelSize: 10
-                                    font.bold: true
-                                    font.letterSpacing: 1.2
-                                }
+                                Column {
+                                    id: headerCol
+                                    width: parent.width
+                                    spacing: 2
 
-                                Text {
-                                    text: "THE ETERNAL MOMENT"
-                                    color: colForeground
-                                    font.pixelSize: 18
-                                    font.bold: true
-                                    font.family: "Outfit, Inter, sans-serif"
+                                    Text {
+                                        text: "EMERGENT KNOWLEDGE | PROCESS #4"
+                                        color: colCyan
+                                        font.pixelSize: 10
+                                        font.bold: true
+                                        font.letterSpacing: 1.2
+                                    }
+
+                                    Text {
+                                        text: "THE ETERNAL MOMENT"
+                                        color: colForeground
+                                        font.pixelSize: 18
+                                        font.bold: true
+                                        font.family: "Outfit, Inter, sans-serif"
+                                    }
                                 }
                             }
 
                             // Authentic Guidance Box (from eternity_app.php)
                             Rectangle {
-                                Layout.fillWidth: true
+                                width: parent.width
+                                implicitHeight: guideCol.implicitHeight + 20
                                 radius: 10
-                                color: Qt.rgba(255, 255, 255, 0.03)
+                                color: "#090d22"
                                 border.width: 1
-                                border.color: Qt.rgba(255, 255, 255, 0.08)
+                                border.color: "#1e293b"
 
-                                ColumnLayout {
-                                    anchors.fill: parent
-                                    anchors.margins: 12
+                                Column {
+                                    id: guideCol
+                                    anchors.top: parent.top
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.margins: 10
                                     spacing: 4
 
                                     Text {
+                                        width: parent.width
                                         text: "‘Where’ can signify any, some or all of these:"
                                         color: colForeground
                                         font.bold: true
                                         font.pixelSize: 11
+                                        wrapMode: Text.WordWrap
                                     }
-                                    Text { text: "• A situation, state or condition"; color: colMuted; font.pixelSize: 11 }
-                                    Text { text: "• A place or viewpoint"; color: colMuted; font.pixelSize: 11 }
-                                    Text { text: "• An identity or attitude"; color: colMuted; font.pixelSize: 11 }
-                                    Text { text: "• A mood or emotion"; color: colMuted; font.pixelSize: 11 }
+                                    Text { width: parent.width; text: "• A situation, state or condition"; color: colMuted; font.pixelSize: 11 }
+                                    Text { width: parent.width; text: "• A place or viewpoint"; color: colMuted; font.pixelSize: 11 }
+                                    Text { width: parent.width; text: "• An identity or attitude"; color: colMuted; font.pixelSize: 11 }
+                                    Text { width: parent.width; text: "• A mood or emotion"; color: colMuted; font.pixelSize: 11 }
                                     Text {
+                                        width: parent.width
                                         text: "in that moment of time."
-                                        color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.8)
+                                        color: colCyan
                                         font.pixelSize: 10
                                         font.italic: true
                                     }
@@ -747,13 +759,15 @@ ApplicationWindow {
                             }
 
                             // Show Outer Helix Toggle Checkbox
-                            RowLayout {
-                                Layout.fillWidth: true
+                            Row {
+                                width: parent.width
+                                height: 26
                                 spacing: 8
 
                                 CheckBox {
                                     id: helixToggle
                                     checked: true
+                                    anchors.verticalCenter: parent.verticalCenter
                                     onCheckedChanged: {
                                         SpiralEngine.toggleHelix(checked);
                                         spiralCanvas.requestPaint();
@@ -763,22 +777,24 @@ ApplicationWindow {
                                     text: "Show Outer Helix Ribbon"
                                     color: colMuted
                                     font.pixelSize: 11
+                                    anchors.verticalCenter: parent.verticalCenter
                                 }
-                                Item { Layout.fillWidth: true }
                             }
 
                             // Step & Set Tracker
-                            RowLayout {
-                                Layout.fillWidth: true
+                            Row {
+                                width: parent.width
+                                height: 26
                                 spacing: 10
 
                                 Rectangle {
-                                    height: 24
-                                    width: setBadge.implicitWidth + 16
-                                    radius: 12
-                                    color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.15)
+                                    height: 22
+                                    width: setBadge.implicitWidth + 14
+                                    radius: 11
+                                    color: "#0e2238"
                                     border.width: 1
                                     border.color: colCyan
+                                    anchors.verticalCenter: parent.verticalCenter
 
                                     Text {
                                         id: setBadge
@@ -786,51 +802,62 @@ ApplicationWindow {
                                         text: "SET " + currentSet + " OF 6"
                                         color: colCyan
                                         font.bold: true
-                                        font.pixelSize: 11
+                                        font.pixelSize: 10
                                     }
                                 }
 
-                                Rectangle {
-                                    Layout.fillWidth: true
+                                Item {
+                                    width: Math.max(20, parent.width - (setBadge.implicitWidth + 14) - stepCountText.implicitWidth - 28)
                                     height: 6
-                                    radius: 3
-                                    color: Qt.rgba(255, 255, 255, 0.1)
+                                    anchors.verticalCenter: parent.verticalCenter
 
                                     Rectangle {
-                                        height: parent.height
+                                        anchors.fill: parent
                                         radius: 3
-                                        width: parent.width * Math.min(1.0, (currentStepIndex + 1) / Math.max(1, flatSteps.length))
-                                        color: colGold
+                                        color: "#1e293b"
+
+                                        Rectangle {
+                                            height: parent.height
+                                            radius: 3
+                                            width: parent.width * Math.min(1.0, (currentStepIndex + 1) / Math.max(1, flatSteps.length))
+                                            color: colGold
+                                        }
                                     }
                                 }
 
                                 Text {
+                                    id: stepCountText
                                     text: "Step " + (currentStepIndex + 1) + "/" + flatSteps.length
                                     color: colMuted
                                     font.pixelSize: 11
+                                    anchors.verticalCenter: parent.verticalCenter
                                 }
                             }
 
                             // Inquiry Card
                             Rectangle {
-                                Layout.fillWidth: true
+                                width: parent.width
+                                implicitHeight: inqCol.implicitHeight + 24
                                 radius: 12
                                 color: colCardBg
                                 border.width: 1.5
                                 border.color: stepTypeColor(currentStepType)
 
-                                ColumnLayout {
-                                    anchors.fill: parent
-                                    anchors.margins: 14
+                                Column {
+                                    id: inqCol
+                                    anchors.top: parent.top
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.margins: 12
                                     spacing: 8
 
-                                    RowLayout {
+                                    Row {
                                         spacing: 8
                                         Rectangle {
                                             height: 20
                                             width: badgeLabel.implicitWidth + 14
                                             radius: 10
-                                            color: Qt.rgba(stepTypeColor(currentStepType).r, stepTypeColor(currentStepType).g, stepTypeColor(currentStepType).b, 0.2)
+                                            color: "#131b38"
                                             border.width: 1
                                             border.color: stepTypeColor(currentStepType)
 
@@ -848,14 +875,15 @@ ApplicationWindow {
                                             text: currentStep ? (ProcessData.questionLibrary[currentStep.key] ? ProcessData.questionLibrary[currentStep.key].label : "") : ""
                                             color: colMuted
                                             font.pixelSize: 11
+                                            anchors.verticalCenter: parent.verticalCenter
                                         }
                                     }
 
                                     Text {
-                                        Layout.fillWidth: true
+                                        width: parent.width
                                         text: currentQuestionText
                                         color: colForeground
-                                        font.pixelSize: 17
+                                        font.pixelSize: 16
                                         font.bold: true
                                         font.family: "Outfit, Inter, sans-serif"
                                         wrapMode: Text.WordWrap
@@ -863,9 +891,9 @@ ApplicationWindow {
 
                                     // Authentic Precursor / Example Text
                                     Text {
-                                        Layout.fillWidth: true
+                                        width: parent.width
                                         text: ProcessData.getStepExample(currentStepType)
-                                        color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.85)
+                                        color: colCyan
                                         font.pixelSize: 11
                                         font.italic: true
                                         wrapMode: Text.WordWrap
@@ -876,25 +904,26 @@ ApplicationWindow {
 
                             // Answer Input Card
                             Rectangle {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 125
+                                width: parent.width
+                                height: 115
                                 radius: 12
-                                color: Qt.rgba(colCardBg.r, colCardBg.g, colCardBg.b, 0.7)
+                                color: "#090d1f"
                                 border.width: 1
                                 border.color: colBorder
 
                                 ScrollView {
                                     anchors.fill: parent
                                     anchors.margins: 10
+                                    clip: true
 
                                     TextArea {
                                         id: answerInputBox
                                         width: parent.width
                                         text: answerDraft
                                         placeholderText: ProcessData.getPlaceholder(currentStepType)
-                                        placeholderTextColor: Qt.rgba(colMuted.r, colMuted.g, colMuted.b, 0.5)
+                                        placeholderTextColor: "#64748b"
                                         color: colForeground
-                                        font.pixelSize: 14
+                                        font.pixelSize: 13
                                         font.family: "Inter, sans-serif"
                                         wrapMode: TextArea.Wrap
                                         background: null
@@ -902,10 +931,8 @@ ApplicationWindow {
 
                                         Keys.onReturnPressed: function(event) {
                                             if (event.modifiers & Qt.ShiftModifier) {
-                                                // Shift+Enter creates a newline
                                                 event.accepted = false;
                                             } else {
-                                                // Enter submits
                                                 advanceStep();
                                                 event.accepted = true;
                                             }
@@ -916,8 +943,8 @@ ApplicationWindow {
 
                             // Dynamic Action Button
                             Rectangle {
-                                Layout.fillWidth: true
-                                height: 40
+                                width: parent.width
+                                height: 38
                                 radius: 8
                                 color: colGold
 
@@ -938,14 +965,15 @@ ApplicationWindow {
 
                             // Progress Track (Now indicator + Step Subtitle)
                             Rectangle {
-                                Layout.fillWidth: true
-                                height: 34
+                                width: parent.width
+                                height: 32
                                 radius: 8
-                                color: Qt.rgba(255, 255, 255, 0.03)
+                                color: "#0a0f25"
+                                border.width: 1
+                                border.color: "#1e293b"
 
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.margins: 8
+                                Row {
+                                    anchors.centerIn: parent
                                     spacing: 8
 
                                     Rectangle {
@@ -953,6 +981,7 @@ ApplicationWindow {
                                         height: 8
                                         radius: 4
                                         color: colGold
+                                        anchors.verticalCenter: parent.verticalCenter
                                     }
 
                                     Text {
@@ -960,30 +989,34 @@ ApplicationWindow {
                                         color: colGold
                                         font.bold: true
                                         font.pixelSize: 11
+                                        anchors.verticalCenter: parent.verticalCenter
                                     }
 
                                     Text {
                                         text: "• " + ProcessData.getProgressSubtitle(currentStepType)
                                         color: colMuted
                                         font.pixelSize: 11
+                                        anchors.verticalCenter: parent.verticalCenter
                                     }
-
-                                    Item { Layout.fillWidth: true }
                                 }
                             }
 
                             // Pre-session calibration slider row (visible on step 0)
                             Rectangle {
-                                Layout.fillWidth: true
+                                width: parent.width
+                                implicitHeight: calibCol.implicitHeight + 20
                                 radius: 10
                                 visible: currentStepIndex === 0
-                                color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.08)
+                                color: "#0b192e"
                                 border.width: 1
-                                border.color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.25)
+                                border.color: "#1e3a5f"
 
-                                ColumnLayout {
-                                    anchors.fill: parent
-                                    anchors.margins: 12
+                                Column {
+                                    id: calibCol
+                                    anchors.top: parent.top
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.margins: 10
                                     spacing: 8
 
                                     Text {
@@ -993,24 +1026,38 @@ ApplicationWindow {
                                         font.pixelSize: 11
                                     }
 
-                                    RowLayout {
-                                        Layout.fillWidth: true
+                                    Row {
+                                        width: parent.width
                                         spacing: 8
-                                        Text { text: "Clarity (" + preClarity + "/10):"; color: colForeground; font.pixelSize: 11; Layout.preferredWidth: 95 }
+                                        Text {
+                                            text: "Clarity (" + preClarity + "/10):"
+                                            color: colForeground
+                                            font.pixelSize: 11
+                                            width: 95
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
                                         Slider {
-                                            Layout.fillWidth: true
+                                            width: parent.width - 105
                                             from: 1; to: 10; stepSize: 1; value: preClarity
+                                            anchors.verticalCenter: parent.verticalCenter
                                             onValueChanged: preClarity = Math.round(value)
                                         }
                                     }
 
-                                    RowLayout {
-                                        Layout.fillWidth: true
+                                    Row {
+                                        width: parent.width
                                         spacing: 8
-                                        Text { text: "Focus (" + preFocus + "/10):"; color: colForeground; font.pixelSize: 11; Layout.preferredWidth: 95 }
+                                        Text {
+                                            text: "Focus (" + preFocus + "/10):"
+                                            color: colForeground
+                                            font.pixelSize: 11
+                                            width: 95
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
                                         Slider {
-                                            Layout.fillWidth: true
+                                            width: parent.width - 105
                                             from: 1; to: 10; stepSize: 1; value: preFocus
+                                            anchors.verticalCenter: parent.verticalCenter
                                             onValueChanged: preFocus = Math.round(value)
                                         }
                                     }
