@@ -8,7 +8,8 @@ function generateMarkdownReport(session, flatSteps, questionLibrary) {
     lines.push("");
     lines.push("**Session ID**: `" + (session.uuid || "session-" + session.id) + "`");
     lines.push("**Recorded**: " + (session.created_at || new Date().toISOString()));
-    lines.push("**Status**: " + (session.status === "completed" ? "✅ Completed" : "⏳ In Progress (Step " + session.current_step + "/81)"));
+    var totalSteps = flatSteps ? flatSteps.length : 80;
+    lines.push("**Status**: " + (session.status === "completed" ? "✅ Completed" : "⏳ In Progress (Step " + Math.min(totalSteps, (session.current_step || 0) + 1) + "/" + totalSteps + ")"));
     lines.push("");
 
     lines.push("### 1. Initial State & Calibration");
@@ -83,7 +84,7 @@ function generateMarkdownReport(session, flatSteps, questionLibrary) {
 
 function generateTweetText(session) {
     if (!session) return "";
-    var insight = session.final_insight || (session.answers && session.answers[80] ? session.answers[80] : "");
+    var insight = session.final_insight || (session.answers && (session.answers[79] || session.answers[80]) ? (session.answers[79] || session.answers[80]) : "");
     if (insight.length > 180) {
         insight = insight.substring(0, 177) + "...";
     }

@@ -146,8 +146,32 @@ ApplicationWindow {
         }
     }
 
+    function saveFinalMetrics() {
+        var s = {
+            id: activeSessionId,
+            uuid: sessionUuid,
+            status: "completed",
+            current_step: flatSteps.length,
+            final_insight: (answers && answers[flatSteps.length - 1]) ? answers[flatSteps.length - 1] : "",
+            pre_clarity: preClarity,
+            pre_focus: preFocus,
+            post_clarity: postClarity,
+            post_focus: postFocus,
+            tags: selectedTags,
+            feedback: sessionFeedback,
+            answers: answers
+        };
+        activeSessionId = Database.saveSession(s);
+        refreshHistory();
+    }
+
     function advanceStep() {
-        if (currentStepIndex >= flatSteps.length) return;
+        if (currentStepIndex >= flatSteps.length) {
+            saveFinalMetrics();
+            viewingSession = Database.loadSession(activeSessionId);
+            activeTab = "report";
+            return;
+        }
 
         var updated = [];
         for (var i = 0; i < answers.length; i++) updated.push(answers[i]);
@@ -161,7 +185,8 @@ ApplicationWindow {
             id: activeSessionId,
             uuid: sessionUuid,
             status: (isDone ? "completed" : "in_progress"),
-            current_step: currentStepIndex,
+            current_step: Math.min(currentStepIndex, flatSteps.length),
+            final_insight: (answers && answers[flatSteps.length - 1]) ? answers[flatSteps.length - 1] : "",
             pre_clarity: preClarity,
             pre_focus: preFocus,
             post_clarity: postClarity,
@@ -171,7 +196,7 @@ ApplicationWindow {
             answers: answers
         };
         activeSessionId = Database.saveSession(s);
-        SpiralEngine.rebuildFromSession(flatSteps, answers, currentStepIndex);
+        SpiralEngine.rebuildFromSession(flatSteps, answers, Math.min(currentStepIndex, flatSteps.length - 1));
         refreshHistory();
 
         answerDraft = (currentStepIndex < flatSteps.length && answers[currentStepIndex]) ? answers[currentStepIndex] : "";
@@ -1161,7 +1186,7 @@ ApplicationWindow {
                                         Text {
                                             id: setBadge
                                             anchors.centerIn: parent
-                                            text: "SET " + currentSet + " OF 6"
+                                            text: currentStepIndex >= flatSteps.length ? "INTEGRATION" : ("SET " + currentSet + " OF 6")
                                             color: colCyan
                                             font.bold: true
                                             font.pixelSize: 10
@@ -1181,7 +1206,7 @@ ApplicationWindow {
                                             Rectangle {
                                                 height: parent.height
                                                 radius: 3
-                                                width: parent.width * Math.min(1.0, (currentStepIndex + 1) / Math.max(1, flatSteps.length))
+                                                width: parent.width * Math.min(1.0, currentStepIndex >= flatSteps.length ? 1.0 : ((currentStepIndex + 1) / Math.max(1, flatSteps.length)))
                                                 color: colGold
                                             }
                                         }
@@ -1189,7 +1214,7 @@ ApplicationWindow {
 
                                     Text {
                                         id: stepCountText
-                                        text: "Step " + (currentStepIndex + 1) + "/" + flatSteps.length
+                                        text: currentStepIndex >= flatSteps.length ? ("Step " + flatSteps.length + "/" + flatSteps.length + " · Complete") : ("Step " + (currentStepIndex + 1) + "/" + flatSteps.length)
                                         color: colMuted
                                         font.pixelSize: 11
                                         anchors.verticalCenter: parent.verticalCenter
@@ -1204,6 +1229,7 @@ ApplicationWindow {
                                     color: colCardBg
                                     border.width: 1.5
                                     border.color: stepTypeColor(currentStepType)
+                                    visible: currentStepIndex < flatSteps.length
 
                                     Column {
                                         id: inqCol
@@ -1272,6 +1298,7 @@ ApplicationWindow {
                                     color: "#090d1f"
                                     border.width: 1
                                     border.color: colBorder
+                                    visible: currentStepIndex < flatSteps.length
 
                                     ScrollView {
                                         id: answerScroll
@@ -1319,6 +1346,7 @@ ApplicationWindow {
                                 height: 38
                                 radius: 8
                                 color: colGold
+                                visible: currentStepIndex < flatSteps.length
 
                                 Text {
                                     anchors.centerIn: parent
@@ -1343,6 +1371,7 @@ ApplicationWindow {
                                 color: "#0a0f25"
                                 border.width: 1
                                 border.color: "#1e293b"
+                                visible: currentStepIndex < flatSteps.length
 
                                 Row {
                                     anchors.centerIn: parent
@@ -1510,6 +1539,200 @@ ApplicationWindow {
                                             from: 1; to: 10; stepSize: 1; value: postFocus
                                             anchors.verticalCenter: parent.verticalCenter
                                             onValueChanged: postFocus = Math.round(value)
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Dedicated Finishing The Metrics Screen (When 80 inquiry steps complete)
+                            Rectangle {
+                                width: parent.width
+                                implicitHeight: finishMetricsCol.implicitHeight + 24
+                                radius: 12
+                                color: "#160d2b"
+                                border.width: 1.5
+                                border.color: colGold
+                                visible: currentStepIndex >= flatSteps.length
+
+                                Column {
+                                    id: finishMetricsCol
+                                    anchors.top: parent.top
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.margins: 12
+                                    spacing: 12
+
+                                    RowLayout {
+                                        width: parent.width
+                                        Text {
+                                            text: "✨ FINISHING THE METRICS"
+                                            color: colGold
+                                            font.bold: true
+                                            font.pixelSize: 11
+                                            font.letterSpacing: 0.8
+                                        }
+                                        Item { Layout.fillWidth: true }
+                                        Text {
+                                            text: "Session Complete"
+                                            color: "#10b981"
+                                            font.bold: true
+                                            font.pixelSize: 10
+                                        }
+                                    }
+
+                                    // Final emergent insight harvest display
+                                    Rectangle {
+                                        width: parent.width
+                                        implicitHeight: insTextCol.implicitHeight + 16
+                                        radius: 8
+                                        color: Qt.rgba(colGold.r, colGold.g, colGold.b, 0.08)
+                                        border.width: 1
+                                        border.color: Qt.rgba(colGold.r, colGold.g, colGold.b, 0.3)
+
+                                        Column {
+                                            id: insTextCol
+                                            anchors.top: parent.top
+                                            anchors.left: parent.left
+                                            anchors.right: parent.right
+                                            anchors.margins: 10
+                                            spacing: 4
+
+                                            Text {
+                                                text: "And, what is the difference between what you knew at the start and what you know now?"
+                                                color: colMuted
+                                                font.pixelSize: 11
+                                                font.italic: true
+                                                width: parent.width
+                                                wrapMode: Text.WordWrap
+                                            }
+
+                                            Text {
+                                                width: parent.width
+                                                text: {
+                                                    var lastAns = (answers && answers[flatSteps.length - 1]) ? answers[flatSteps.length - 1] : ((answers && answers[79]) ? answers[79] : "");
+                                                    return lastAns ? ("\"" + lastAns + "\"") : "Breakthrough insight recorded.";
+                                                }
+                                                color: colForeground
+                                                font.bold: true
+                                                font.pixelSize: 13
+                                                wrapMode: Text.WordWrap
+                                            }
+                                        }
+                                    }
+
+                                    // Live shift indicator
+                                    RowLayout {
+                                        width: parent.width
+                                        Text {
+                                            text: "Calibrate where you are now:"
+                                            color: "#c4b5fd"
+                                            font.bold: true
+                                            font.pixelSize: 11
+                                        }
+                                        Item { Layout.fillWidth: true }
+                                        Text {
+                                            text: "Shift: " + ((postClarity - preClarity >= 0 ? "+" : "") + (postClarity - preClarity)) + " Clarity • " + ((postFocus - preFocus >= 0 ? "+" : "") + (postFocus - preFocus)) + " Focus"
+                                            color: colGold
+                                            font.bold: true
+                                            font.pixelSize: 11
+                                        }
+                                    }
+
+                                    // Clarity Slider
+                                    Row {
+                                        width: parent.width
+                                        spacing: 8
+                                        Text {
+                                            text: "Clarity (" + postClarity + "/10):"
+                                            color: colForeground
+                                            font.pixelSize: 11
+                                            width: 95
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                        Slider {
+                                            width: parent.width - 105
+                                            from: 1; to: 10; stepSize: 1; value: postClarity
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            onValueChanged: {
+                                                postClarity = Math.round(value);
+                                                saveFinalMetrics();
+                                            }
+                                        }
+                                    }
+
+                                    // Focus Slider
+                                    Row {
+                                        width: parent.width
+                                        spacing: 8
+                                        Text {
+                                            text: "Focus (" + postFocus + "/10):"
+                                            color: colForeground
+                                            font.pixelSize: 11
+                                            width: 95
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                        Slider {
+                                            width: parent.width - 105
+                                            from: 1; to: 10; stepSize: 1; value: postFocus
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            onValueChanged: {
+                                                postFocus = Math.round(value);
+                                                saveFinalMetrics();
+                                            }
+                                        }
+                                    }
+
+                                    // Action Buttons: View Report / New Session
+                                    RowLayout {
+                                        width: parent.width
+                                        spacing: 10
+
+                                        Rectangle {
+                                            Layout.fillWidth: true
+                                            height: 38
+                                            radius: 8
+                                            color: colGold
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: "📋 View Session Report ★"
+                                                color: "#020617"
+                                                font.bold: true
+                                                font.pixelSize: 12
+                                            }
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    saveFinalMetrics();
+                                                    viewingSession = Database.loadSession(activeSessionId);
+                                                    activeTab = "report";
+                                                }
+                                            }
+                                        }
+
+                                        Rectangle {
+                                            Layout.preferredWidth: 120
+                                            height: 38
+                                            radius: 8
+                                            color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.15)
+                                            border.width: 1
+                                            border.color: colCyan
+
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: "🌀 New Session"
+                                                color: colCyan
+                                                font.bold: true
+                                                font.pixelSize: 12
+                                            }
+
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: startNewSession()
+                                            }
                                         }
                                     }
                                 }

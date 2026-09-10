@@ -122,8 +122,32 @@ Panel {
     activeTab = "report";
   }
 
+  function saveFinalMetrics() {
+    var s = {
+      id: activeSessionId,
+      uuid: sessionUuid,
+      status: "completed",
+      current_step: flatSteps.length,
+      final_insight: (answers && answers[flatSteps.length - 1]) ? answers[flatSteps.length - 1] : "",
+      pre_clarity: preClarity,
+      pre_focus: preFocus,
+      post_clarity: postClarity,
+      post_focus: postFocus,
+      tags: selectedTags,
+      feedback: sessionFeedback,
+      answers: answers
+    };
+    activeSessionId = Database.saveSession(s);
+    refreshHistory();
+  }
+
   function advanceStep() {
-    if (currentStepIndex >= flatSteps.length) return;
+    if (currentStepIndex >= flatSteps.length) {
+      saveFinalMetrics();
+      viewingSession = Database.loadSession(activeSessionId);
+      activeTab = "report";
+      return;
+    }
 
     var updated = [];
     for (var i = 0; i < answers.length; i++) updated.push(answers[i]);
@@ -132,12 +156,14 @@ Panel {
 
     currentStepIndex++;
 
+    var isDone = currentStepIndex >= flatSteps.length;
     // Auto-save progress
     var s = {
       id: activeSessionId,
       uuid: sessionUuid,
-      status: (currentStepIndex >= flatSteps.length ? "completed" : "in_progress"),
-      current_step: currentStepIndex,
+      status: (isDone ? "completed" : "in_progress"),
+      current_step: Math.min(currentStepIndex, flatSteps.length),
+      final_insight: (answers && answers[flatSteps.length - 1]) ? answers[flatSteps.length - 1] : "",
       pre_clarity: preClarity,
       pre_focus: preFocus,
       post_clarity: postClarity,
@@ -151,7 +177,7 @@ Panel {
 
     answerDraft = (currentStepIndex < flatSteps.length && answers[currentStepIndex]) ? answers[currentStepIndex] : "";
 
-    if (currentStepIndex >= flatSteps.length) {
+    if (isDone) {
       viewingSession = Database.loadSession(activeSessionId);
       activeTab = "report";
     }
@@ -403,7 +429,7 @@ Panel {
               anchors.centerIn: parent
 
               Text {
-                text: "Set " + root.currentSet + " / 6"
+                text: root.currentStepIndex >= root.flatSteps.length ? "Integration" : ("Set " + root.currentSet + " / 6")
                 color: root.cyanColor
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.caption
@@ -422,7 +448,7 @@ Panel {
                 Rectangle {
                   height: parent.height
                   radius: height / 2
-                  width: parent.width * Math.min(1.0, (root.currentStepIndex + 1) / Math.max(1, root.flatSteps.length))
+                  width: parent.width * Math.min(1.0, root.currentStepIndex >= root.flatSteps.length ? 1.0 : ((root.currentStepIndex + 1) / Math.max(1, root.flatSteps.length)))
                   color: root.goldColor
                 }
               }
@@ -430,7 +456,7 @@ Panel {
               Item { width: Style.space(10); height: 1 }
 
               Text {
-                text: "Step " + (root.currentStepIndex + 1) + " / " + root.flatSteps.length
+                text: root.currentStepIndex >= root.flatSteps.length ? (root.flatSteps.length + " / " + root.flatSteps.length + " · Complete") : ("Step " + (root.currentStepIndex + 1) + " / " + root.flatSteps.length)
                 color: root.mutedColor
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.caption
@@ -446,6 +472,7 @@ Panel {
             color: Qt.rgba(0.02, 0.04, 0.09, 0.85)
             radius: Style.cornerRadius
             borderSpec: Border.flat(root.stepTypeColor(root.currentStepType), 1.5)
+            visible: root.currentStepIndex < root.flatSteps.length
 
             Column {
               id: qCol
@@ -522,6 +549,7 @@ Panel {
             color: Qt.rgba(root.background.r, root.background.g, root.background.b, 0.7)
             radius: Style.cornerRadius
             borderSpec: Border.flat(Qt.rgba(root.accentColor.r, root.accentColor.g, root.accentColor.b, 0.3), 1)
+            visible: root.currentStepIndex < root.flatSteps.length
 
             Column {
               id: inputCol
@@ -566,7 +594,7 @@ Panel {
 
                 Button {
                   id: btnAdv
-                  text: (root.currentStepIndex + 1 >= root.flatSteps.length ? "Complete Session ★" : "Reflect & Next →")
+                  text: (root.currentStepIndex + 1 >= root.flatSteps.length ? "Finish with Metrics ★" : "Reflect & Next →")
                   accent: root.goldColor
                   bordered: true
                   onClicked: root.advanceStep()
@@ -655,7 +683,7 @@ Panel {
           // Post-session calibration (Collapsible card during final step)
           BorderSurface {
             width: parent.width
-            visible: root.currentStepIndex + 1 >= root.flatSteps.length
+            visible: root.currentStepIndex === root.flatSteps.length - 1
             implicitHeight: postCalibCol.implicitHeight + Style.space(18)
             color: Qt.rgba(root.accentColor.r, root.accentColor.g, root.accentColor.b, 0.08)
             radius: Style.cornerRadius
@@ -705,7 +733,10 @@ Panel {
                   to: 10
                   stepSize: 1
                   value: root.postClarity
-                  onValueChanged: root.postClarity = Math.round(value)
+                  onValueChanged: {
+                    root.postClarity = Math.round(value);
+                    root.saveFinalMetrics();
+                  }
                 }
               }
 
@@ -728,7 +759,186 @@ Panel {
                   to: 10
                   stepSize: 1
                   value: root.postFocus
-                  onValueChanged: root.postFocus = Math.round(value)
+                  onValueChanged: {
+                    root.postFocus = Math.round(value);
+                    root.saveFinalMetrics();
+                  }
+                }
+              }
+            }
+          }
+
+          // Dedicated Finishing The Metrics Screen (When 80 inquiry steps complete)
+          BorderSurface {
+            width: parent.width
+            implicitHeight: finishMetricsCol.implicitHeight + Style.space(24)
+            color: Qt.rgba(0.09, 0.05, 0.17, 0.95)
+            radius: Style.cornerRadius
+            borderSpec: Border.flat(root.goldColor, 1.5)
+            visible: root.currentStepIndex >= root.flatSteps.length
+
+            Column {
+              id: finishMetricsCol
+              width: parent.width - Style.space(24)
+              anchors.centerIn: parent
+              spacing: Style.space(12)
+
+              Row {
+                width: parent.width
+                Text {
+                  text: "✨ Finishing The Metrics"
+                  color: root.goldColor
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption
+                  font.bold: true
+                }
+                Item { width: Math.max(Style.space(10), parent.width - Style.space(220)); height: 1 }
+                Text {
+                  text: "Session Complete"
+                  color: "#10b981"
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption - 1
+                  font.bold: true
+                }
+              }
+
+              // Final emergent insight harvest display
+              Rectangle {
+                width: parent.width
+                height: insCol.implicitHeight + Style.space(16)
+                radius: Style.cornerRadius - 2
+                color: Qt.rgba(root.goldColor.r, root.goldColor.g, root.goldColor.b, 0.08)
+                border.width: 1
+                border.color: Qt.rgba(root.goldColor.r, root.goldColor.g, root.goldColor.b, 0.3)
+
+                Column {
+                  id: insCol
+                  width: parent.width - Style.space(16)
+                  anchors.centerIn: parent
+                  spacing: Style.space(4)
+
+                  Text {
+                    width: parent.width
+                    text: "And, what is the difference between what you knew at the start and what you know now?"
+                    color: root.mutedColor
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption - 2
+                    font.italic: true
+                    wrapMode: Text.WordWrap
+                  }
+
+                  Text {
+                    width: parent.width
+                    text: {
+                      var lastAns = (root.answers && root.answers[root.flatSteps.length - 1]) ? root.answers[root.flatSteps.length - 1] : ((root.answers && root.answers[79]) ? root.answers[79] : "");
+                      return lastAns ? ("\"" + lastAns + "\"") : "Breakthrough insight recorded.";
+                    }
+                    color: root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption
+                    font.bold: true
+                    wrapMode: Text.WordWrap
+                  }
+                }
+              }
+
+              // Live shift indicator
+              Row {
+                width: parent.width
+                Text {
+                  text: "Calibrate where you are now:"
+                  color: "#c4b5fd"
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption
+                  font.bold: true
+                }
+                Item { width: Math.max(Style.space(10), parent.width - Style.space(260)); height: 1 }
+                Text {
+                  text: "Shift: " + ((root.postClarity - root.preClarity >= 0 ? "+" : "") + (root.postClarity - root.preClarity)) + " Clarity • " + ((root.postFocus - root.preFocus >= 0 ? "+" : "") + (root.postFocus - root.preFocus)) + " Focus"
+                  color: root.goldColor
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption - 1
+                  font.bold: true
+                }
+              }
+
+              // Clarity Slider
+              Row {
+                width: parent.width
+                spacing: Style.space(8)
+
+                Text {
+                  width: Style.space(90)
+                  anchors.verticalCenter: parent.verticalCenter
+                  text: "Clarity: " + root.postClarity + "/10"
+                  color: root.foreground
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption
+                }
+
+                Controls.Slider {
+                  width: parent.width - Style.space(100)
+                  from: 1
+                  to: 10
+                  stepSize: 1
+                  value: root.postClarity
+                  onValueChanged: {
+                    root.postClarity = Math.round(value);
+                    root.saveFinalMetrics();
+                  }
+                }
+              }
+
+              // Focus Slider
+              Row {
+                width: parent.width
+                spacing: Style.space(8)
+
+                Text {
+                  width: Style.space(90)
+                  anchors.verticalCenter: parent.verticalCenter
+                  text: "Focus: " + root.postFocus + "/10"
+                  color: root.foreground
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption
+                }
+
+                Controls.Slider {
+                  width: parent.width - Style.space(100)
+                  from: 1
+                  to: 10
+                  stepSize: 1
+                  value: root.postFocus
+                  onValueChanged: {
+                    root.postFocus = Math.round(value);
+                    root.saveFinalMetrics();
+                  }
+                }
+              }
+
+              // Action Buttons
+              Row {
+                width: parent.width
+                spacing: Style.space(10)
+
+                Button {
+                  width: parent.width - Style.space(130)
+                  text: "📋 View Session Report ★"
+                  accent: root.goldColor
+                  bordered: true
+                  onClicked: {
+                    root.saveFinalMetrics();
+                    root.viewingSession = Database.loadSession(root.activeSessionId);
+                    root.activeTab = "report";
+                  }
+                }
+
+                Button {
+                  width: Style.space(120)
+                  text: "🌀 New Session"
+                  accent: root.cyanColor
+                  bordered: true
+                  onClicked: root.startNewSession()
                 }
               }
             }

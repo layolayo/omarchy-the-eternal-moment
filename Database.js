@@ -71,7 +71,7 @@ function saveSession(session) {
             var answersJson = JSON.stringify(session.answers || []);
             var tagsJson = JSON.stringify(session.tags || []);
             var nowStart = session.answers && session.answers[0] ? session.answers[0] : "";
-            var finalInsight = session.final_insight || (session.answers && session.answers[80] ? session.answers[80] : "");
+            var finalInsight = session.final_insight || (session.answers && (session.answers[79] || session.answers[80]) ? (session.answers[79] || session.answers[80]) : "");
 
             tx.executeSql(`
                 UPDATE sessions SET
