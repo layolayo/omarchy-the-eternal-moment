@@ -624,40 +624,94 @@ function render(ctx, w, h, mouseX, mouseY) {
         }
     }
 
-    // 7. Hover Tooltip (Nodes & Compare Connections)
+    // 7. Hover Tooltip (Nodes & Compare Connections - shows whole text without title prefixes)
     var activeHover = hoveredNodeObj || hoveredConnObj;
     if (activeHover) {
+        var rawText = (activeHover.label && activeHover.label.trim().length > 0)
+            ? activeHover.label.trim()
+            : "(No response recorded yet)";
+
         ctx.save();
-        var tipHeader = activeHover.stepTitle || (activeHover.type ? activeHover.type.toUpperCase() : "ITEM");
-        var ansContent = activeHover.label ? ("\"" + activeHover.label + "\"") : "(No response recorded yet)";
-        var tipText = "[" + tipHeader + "] " + ansContent;
-
         ctx.font = "12px sans-serif";
-        var tWidth = Math.min(380, ctx.measureText(tipText).width + 24);
+        var maxBoxWidth = Math.min(460, Math.max(180, w - 40));
+        var paddingX = 14;
+        var paddingY = 10;
+        var lineHeight = 18;
+        var maxContentWidth = maxBoxWidth - (paddingX * 2);
 
-        ctx.fillStyle = "rgba(15, 23, 42, 0.94)";
-        var borderCol = (activeHover.type === "future") ? "rgba(217, 70, 239, 0.8)" :
-                        (activeHover.type === "past") ? "rgba(59, 130, 246, 0.8)" :
-                        (activeHover.type === "compare") ? "rgba(6, 182, 212, 0.9)" : "rgba(245, 158, 11, 0.8)";
+        // Word wrap lines based on content width
+        var paragraphs = rawText.split("\n");
+        var wrappedLines = [];
+        for (var p = 0; p < paragraphs.length; p++) {
+            var para = paragraphs[p];
+            if (!para || para.trim().length === 0) {
+                if (wrappedLines.length > 0) wrappedLines.push("");
+                continue;
+            }
+            var words = para.split(/\s+/);
+            var currentLine = words[0];
+            for (var widx = 1; widx < words.length; widx++) {
+                var testLine = currentLine + " " + words[widx];
+                if (ctx.measureText(testLine).width <= maxContentWidth) {
+                    currentLine = testLine;
+                } else {
+                    wrappedLines.push(currentLine);
+                    currentLine = words[widx];
+                }
+            }
+            wrappedLines.push(currentLine);
+        }
+        if (wrappedLines.length === 0) wrappedLines.push(rawText);
+
+        var maxLineWidth = 0;
+        for (var li = 0; li < wrappedLines.length; li++) {
+            var lw = ctx.measureText(wrappedLines[li]).width;
+            if (lw > maxLineWidth) maxLineWidth = lw;
+        }
+
+        var boxWidth = Math.max(60, Math.round(maxLineWidth + paddingX * 2));
+        var boxHeight = Math.round(paddingY * 2 + (wrappedLines.length * lineHeight));
+
+        // Tooltip placement near cursor with intelligent screen edge flipping
+        var boxX = mouseX + 16;
+        if (boxX + boxWidth > w - 12) {
+            boxX = mouseX - boxWidth - 16;
+        }
+        if (boxX < 12) {
+            boxX = 12;
+        }
+
+        var boxY = mouseY + 16;
+        if (boxY + boxHeight > h - 12) {
+            boxY = mouseY - boxHeight - 12;
+        }
+        if (boxY < 12) {
+            boxY = 12;
+        }
+
+        // Background card with theme-matched border
+        ctx.fillStyle = "rgba(10, 15, 30, 0.95)";
+        var borderCol = (activeHover.type === "future") ? "rgba(217, 70, 239, 0.85)" :
+                        (activeHover.type === "past") ? "rgba(59, 130, 246, 0.85)" :
+                        (activeHover.type === "compare") ? "rgba(6, 182, 212, 0.95)" : "rgba(245, 158, 11, 0.85)";
         ctx.strokeStyle = borderCol;
         ctx.lineWidth = 1.5;
-        var boxX = Math.min(w - tWidth - 12, Math.max(12, mouseX + 15));
-        var boxY = Math.min(h - 44, Math.max(12, mouseY + 15));
 
         ctx.beginPath();
         if (ctx.roundRect) {
-            ctx.roundRect(boxX, boxY, tWidth, 28, 6);
+            ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 8);
         } else {
-            ctx.rect(boxX, boxY, tWidth, 28);
+            ctx.rect(boxX, boxY, boxWidth, boxHeight);
         }
         ctx.fill();
         ctx.stroke();
 
-        ctx.fillStyle = "#f8fafc";
+        // Render whole text
+        ctx.fillStyle = (activeHover.label && activeHover.label.trim().length > 0) ? "#f8fafc" : "#94a3b8";
         ctx.textAlign = "left";
-        var displayStr = tipText;
-        if (displayStr.length > 50) displayStr = displayStr.substring(0, 47) + "...";
-        ctx.fillText(displayStr, boxX + 10, boxY + 18);
+        for (var tIdx = 0; tIdx < wrappedLines.length; tIdx++) {
+            ctx.fillText(wrappedLines[tIdx], boxX + paddingX, boxY + paddingY + 13 + (tIdx * lineHeight));
+        }
         ctx.restore();
     }
 }
