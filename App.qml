@@ -1543,24 +1543,6 @@ ApplicationWindow {
                                         }
                                     }
 
-                                    // Live shift indicator pill
-                                    Rectangle {
-                                        width: parent.width
-                                        height: 32
-                                        radius: 6
-                                        color: Qt.rgba(0, 0, 0, 0.3)
-                                        border.width: 1
-                                        border.color: Qt.rgba(colGold.r, colGold.g, colGold.b, 0.3)
-
-                                        Text {
-                                            anchors.centerIn: parent
-                                            text: "Shift: " + ((postClarity - preClarity >= 0 ? "+" : "") + (postClarity - preClarity)) + "% Clarity • " + ((postMovement - preMovement >= 0 ? "+" : "") + (postMovement - preMovement)) + "% Movement"
-                                            color: colGold
-                                            font.bold: true
-                                            font.pixelSize: 11
-                                        }
-                                    }
-
                                     // Open Metrics Modal Button
                                     Rectangle {
                                         width: parent.width
@@ -2928,37 +2910,42 @@ ApplicationWindow {
                     }
                 }
 
-                // Live Shift Indicator
-                RowLayout {
-                    Layout.fillWidth: true
-
-                    Text {
-                        text: "Calibrate where you are now:"
-                        color: "#c4b5fd"
-                        font.bold: true
-                        font.pixelSize: 13
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    Text {
-                        text: "Shift: " + ((postClarity - preClarity >= 0 ? "+" : "") + (postClarity - preClarity)) + "% Clarity • " + ((postMovement - preMovement >= 0 ? "+" : "") + (postMovement - preMovement)) + "% Movement"
-                        color: colGold
-                        font.bold: true
-                        font.pixelSize: 13
-                    }
-                }
-
-                // Clarity Slider Group (Foggy -> Clear)
+                // Clarity Slider Group (Foggy -> Clear) with Ghost Mark of Session Start
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 6
 
-                    Text {
-                        text: "Clarity"
-                        color: colCyan
-                        font.bold: true
-                        font.pixelSize: 14
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        Text {
+                            text: "Clarity"
+                            color: colCyan
+                            font.bold: true
+                            font.pixelSize: 14
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        Row {
+                            spacing: 5
+                            Rectangle {
+                                width: 8
+                                height: 8
+                                radius: 4
+                                color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.25)
+                                border.width: 1.5
+                                border.color: colCyan
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Text {
+                                text: "Start: " + preClarity + "%"
+                                color: colMuted
+                                font.pixelSize: 11
+                                font.italic: true
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                        }
                     }
 
                     RowLayout {
@@ -2973,15 +2960,50 @@ ApplicationWindow {
                             Layout.preferredWidth: 44
                         }
 
-                        Slider {
+                        Item {
                             Layout.fillWidth: true
-                            from: 0
-                            to: 100
-                            stepSize: 1
-                            value: postClarity
-                            onValueChanged: {
-                                postClarity = Math.round(value);
-                                saveFinalMetrics();
+                            height: clarityPostSlider.implicitHeight || 28
+
+                            Slider {
+                                id: clarityPostSlider
+                                anchors.fill: parent
+                                from: 0
+                                to: 100
+                                stepSize: 1
+                                value: postClarity
+                                onValueChanged: {
+                                    postClarity = Math.round(value);
+                                    saveFinalMetrics();
+                                }
+                            }
+
+                            // Ghost Mark (Session Start Position)
+                            Item {
+                                id: ghostMarkClarity
+                                property real hw: (clarityPostSlider.handle ? clarityPostSlider.handle.width : 16)
+                                property real hh: (clarityPostSlider.handle ? clarityPostSlider.handle.height : 16)
+                                width: hw
+                                height: hh
+                                anchors.verticalCenter: clarityPostSlider.verticalCenter
+                                x: Math.round(clarityPostSlider.leftPadding + (preClarity / 100.0) * (clarityPostSlider.availableWidth - hw))
+                                enabled: false
+                                z: 0
+
+                                Rectangle {
+                                    width: 2
+                                    height: parent.height + 8
+                                    radius: 1
+                                    anchors.centerIn: parent
+                                    color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.6)
+                                }
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: width / 2
+                                    color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.2)
+                                    border.width: 1.5
+                                    border.color: colCyan
+                                }
                             }
                         }
 
@@ -2996,16 +3018,42 @@ ApplicationWindow {
                     }
                 }
 
-                // Movement Slider Group (Stuck -> Flowing)
+                // Movement Slider Group (Stuck -> Flowing) with Ghost Mark of Session Start
                 ColumnLayout {
                     Layout.fillWidth: true
                     spacing: 6
 
-                    Text {
-                        text: "Movement"
-                        color: colCyan
-                        font.bold: true
-                        font.pixelSize: 14
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        Text {
+                            text: "Movement"
+                            color: colCyan
+                            font.bold: true
+                            font.pixelSize: 14
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        Row {
+                            spacing: 5
+                            Rectangle {
+                                width: 8
+                                height: 8
+                                radius: 4
+                                color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.25)
+                                border.width: 1.5
+                                border.color: colCyan
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Text {
+                                text: "Start: " + preMovement + "%"
+                                color: colMuted
+                                font.pixelSize: 11
+                                font.italic: true
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                        }
                     }
 
                     RowLayout {
@@ -3020,16 +3068,51 @@ ApplicationWindow {
                             Layout.preferredWidth: 44
                         }
 
-                        Slider {
+                        Item {
                             Layout.fillWidth: true
-                            from: 0
-                            to: 100
-                            stepSize: 1
-                            value: postMovement
-                            onValueChanged: {
-                                postMovement = Math.round(value);
-                                postFocus = postMovement;
-                                saveFinalMetrics();
+                            height: movementPostSlider.implicitHeight || 28
+
+                            Slider {
+                                id: movementPostSlider
+                                anchors.fill: parent
+                                from: 0
+                                to: 100
+                                stepSize: 1
+                                value: postMovement
+                                onValueChanged: {
+                                    postMovement = Math.round(value);
+                                    postFocus = postMovement;
+                                    saveFinalMetrics();
+                                }
+                            }
+
+                            // Ghost Mark (Session Start Position)
+                            Item {
+                                id: ghostMarkMovement
+                                property real hw: (movementPostSlider.handle ? movementPostSlider.handle.width : 16)
+                                property real hh: (movementPostSlider.handle ? movementPostSlider.handle.height : 16)
+                                width: hw
+                                height: hh
+                                anchors.verticalCenter: movementPostSlider.verticalCenter
+                                x: Math.round(movementPostSlider.leftPadding + (preMovement / 100.0) * (movementPostSlider.availableWidth - hw))
+                                enabled: false
+                                z: 0
+
+                                Rectangle {
+                                    width: 2
+                                    height: parent.height + 8
+                                    radius: 1
+                                    anchors.centerIn: parent
+                                    color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.6)
+                                }
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: width / 2
+                                    color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.2)
+                                    border.width: 1.5
+                                    border.color: colCyan
+                                }
                             }
                         }
 

@@ -746,25 +746,6 @@ Panel {
                 }
               }
 
-              // Live shift indicator pill
-              Rectangle {
-                width: parent.width
-                height: Style.space(32)
-                radius: Style.cornerRadius - 2
-                color: Qt.rgba(0, 0, 0, 0.3)
-                border.width: 1
-                border.color: Qt.rgba(root.goldColor.r, root.goldColor.g, root.goldColor.b, 0.3)
-
-                Text {
-                  anchors.centerIn: parent
-                  text: "Shift: " + ((root.postClarity - root.preClarity >= 0 ? "+" : "") + (root.postClarity - root.preClarity)) + "% Clarity • " + ((root.postMovement - root.preMovement >= 0 ? "+" : "") + (root.postMovement - root.preMovement)) + "% Movement"
-                  color: root.goldColor
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption - 1
-                  font.bold: true
-                }
-              }
-
               // Open Metrics Modal Button
               Button {
                 width: parent.width
@@ -1573,37 +1554,44 @@ Panel {
             }
           }
 
-          // Live Shift Indicator
-          Row {
-            width: parent.width
-            Text {
-              text: "Calibrate where you are now:"
-              color: "#c4b5fd"
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
-              font.bold: true
-            }
-            Item { width: Math.max(Style.space(10), parent.width - Style.space(260)); height: 1 }
-            Text {
-              text: "Shift: " + ((root.postClarity - root.preClarity >= 0 ? "+" : "") + (root.postClarity - root.preClarity)) + "% Clarity • " + ((root.postMovement - root.preMovement >= 0 ? "+" : "") + (root.postMovement - root.preMovement)) + "% Movement"
-              color: root.goldColor
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.caption - 1
-              font.bold: true
-            }
-          }
-
-          // Clarity Slider Group (Foggy -> Clear)
+          // Clarity Slider Group (Foggy -> Clear) with Ghost Mark of Session Start
           Column {
             width: parent.width
             spacing: Style.space(6)
 
-            Text {
-              text: "Clarity"
-              color: root.cyanColor
-              font.family: root.fontFamily
-              font.bold: true
-              font.pixelSize: Style.font.caption
+            Row {
+              width: parent.width
+
+              Text {
+                text: "Clarity"
+                color: root.cyanColor
+                font.family: root.fontFamily
+                font.bold: true
+                font.pixelSize: Style.font.caption
+              }
+
+              Item { width: Math.max(Style.space(10), parent.width - Style.space(160)); height: 1 }
+
+              Row {
+                spacing: Style.space(4)
+                Rectangle {
+                  width: Style.space(8)
+                  height: Style.space(8)
+                  radius: Style.space(4)
+                  color: Qt.rgba(root.cyanColor.r, root.cyanColor.g, root.cyanColor.b, 0.25)
+                  border.width: 1.5
+                  border.color: root.cyanColor
+                  anchors.verticalCenter: parent.verticalCenter
+                }
+                Text {
+                  text: "Start: " + root.preClarity + "%"
+                  color: root.mutedColor
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.space(10)
+                  font.italic: true
+                  anchors.verticalCenter: parent.verticalCenter
+                }
+              }
             }
 
             Row {
@@ -1619,15 +1607,50 @@ Panel {
                 width: Style.space(44)
               }
 
-              Controls.Slider {
+              Item {
                 width: parent.width - Style.space(100)
-                from: 0
-                to: 100
-                stepSize: 1
-                value: root.postClarity
-                onValueChanged: {
-                  root.postClarity = Math.round(value);
-                  root.saveFinalMetrics();
+                height: clarityPostSlider.implicitHeight || Style.space(28)
+
+                Controls.Slider {
+                  id: clarityPostSlider
+                  anchors.fill: parent
+                  from: 0
+                  to: 100
+                  stepSize: 1
+                  value: root.postClarity
+                  onValueChanged: {
+                    root.postClarity = Math.round(value);
+                    root.saveFinalMetrics();
+                  }
+                }
+
+                // Ghost Mark (Session Start Position)
+                Item {
+                  id: ghostMarkClarity
+                  property real hw: (clarityPostSlider.handle ? clarityPostSlider.handle.width : Style.space(14))
+                  property real hh: (clarityPostSlider.handle ? clarityPostSlider.handle.height : Style.space(14))
+                  width: hw
+                  height: hh
+                  anchors.verticalCenter: clarityPostSlider.verticalCenter
+                  x: Math.round(clarityPostSlider.leftPadding + (root.preClarity / 100.0) * (clarityPostSlider.availableWidth - hw))
+                  enabled: false
+                  z: 0
+
+                  Rectangle {
+                    width: 2
+                    height: parent.height + Style.space(8)
+                    radius: 1
+                    anchors.centerIn: parent
+                    color: Qt.rgba(root.cyanColor.r, root.cyanColor.g, root.cyanColor.b, 0.6)
+                  }
+
+                  Rectangle {
+                    anchors.fill: parent
+                    radius: width / 2
+                    color: Qt.rgba(root.cyanColor.r, root.cyanColor.g, root.cyanColor.b, 0.2)
+                    border.width: 1.5
+                    border.color: root.cyanColor
+                  }
                 }
               }
 
@@ -1643,17 +1666,44 @@ Panel {
             }
           }
 
-          // Movement Slider Group (Stuck -> Flowing)
+          // Movement Slider Group (Stuck -> Flowing) with Ghost Mark of Session Start
           Column {
             width: parent.width
             spacing: Style.space(6)
 
-            Text {
-              text: "Movement"
-              color: root.cyanColor
-              font.family: root.fontFamily
-              font.bold: true
-              font.pixelSize: Style.font.caption
+            Row {
+              width: parent.width
+
+              Text {
+                text: "Movement"
+                color: root.cyanColor
+                font.family: root.fontFamily
+                font.bold: true
+                font.pixelSize: Style.font.caption
+              }
+
+              Item { width: Math.max(Style.space(10), parent.width - Style.space(160)); height: 1 }
+
+              Row {
+                spacing: Style.space(4)
+                Rectangle {
+                  width: Style.space(8)
+                  height: Style.space(8)
+                  radius: Style.space(4)
+                  color: Qt.rgba(root.cyanColor.r, root.cyanColor.g, root.cyanColor.b, 0.25)
+                  border.width: 1.5
+                  border.color: root.cyanColor
+                  anchors.verticalCenter: parent.verticalCenter
+                }
+                Text {
+                  text: "Start: " + root.preMovement + "%"
+                  color: root.mutedColor
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.space(10)
+                  font.italic: true
+                  anchors.verticalCenter: parent.verticalCenter
+                }
+              }
             }
 
             Row {
@@ -1669,16 +1719,51 @@ Panel {
                 width: Style.space(44)
               }
 
-              Controls.Slider {
+              Item {
                 width: parent.width - Style.space(100)
-                from: 0
-                to: 100
-                stepSize: 1
-                value: root.postMovement
-                onValueChanged: {
-                  root.postMovement = Math.round(value);
-                  root.postFocus = root.postMovement;
-                  root.saveFinalMetrics();
+                height: movementPostSlider.implicitHeight || Style.space(28)
+
+                Controls.Slider {
+                  id: movementPostSlider
+                  anchors.fill: parent
+                  from: 0
+                  to: 100
+                  stepSize: 1
+                  value: root.postMovement
+                  onValueChanged: {
+                    root.postMovement = Math.round(value);
+                    root.postFocus = root.postMovement;
+                    root.saveFinalMetrics();
+                  }
+                }
+
+                // Ghost Mark (Session Start Position)
+                Item {
+                  id: ghostMarkMovement
+                  property real hw: (movementPostSlider.handle ? movementPostSlider.handle.width : Style.space(14))
+                  property real hh: (movementPostSlider.handle ? movementPostSlider.handle.height : Style.space(14))
+                  width: hw
+                  height: hh
+                  anchors.verticalCenter: movementPostSlider.verticalCenter
+                  x: Math.round(movementPostSlider.leftPadding + (root.preMovement / 100.0) * (movementPostSlider.availableWidth - hw))
+                  enabled: false
+                  z: 0
+
+                  Rectangle {
+                    width: 2
+                    height: parent.height + Style.space(8)
+                    radius: 1
+                    anchors.centerIn: parent
+                    color: Qt.rgba(root.cyanColor.r, root.cyanColor.g, root.cyanColor.b, 0.6)
+                  }
+
+                  Rectangle {
+                    anchors.fill: parent
+                    radius: width / 2
+                    color: Qt.rgba(root.cyanColor.r, root.cyanColor.g, root.cyanColor.b, 0.2)
+                    border.width: 1.5
+                    border.color: root.cyanColor
+                  }
                 }
               }
 
