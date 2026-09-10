@@ -40,12 +40,19 @@ var questionLibrary = {
 
 function buildFlatSteps() {
     var flat = [];
+    var nowCount = 0;
+    var pastCount = 0;
+    var futureCount = 0;
+    var compareCount = 0;
 
     // Step 0: Starter Now
+    nowCount++;
     flat.push({
         id: 0,
         key: "p4_starter",
         set: 1,
+        stepNumber: nowCount,
+        stepTitle: "Now " + nowCount,
         nowAnchorIndex: 0
     });
 
@@ -56,10 +63,13 @@ function buildFlatSteps() {
         if (setNum > 1) {
             // New 'Now' recognition at start of sets 2-6
             var nowStepIndex = flat.length;
+            nowCount++;
             flat.push({
                 id: nowStepIndex,
                 key: "now",
                 set: setNum,
+                stepNumber: nowCount,
+                stepTitle: "Now " + nowCount,
                 nowAnchorIndex: nowStepIndex
             });
             currentNowAnchor = nowStepIndex;
@@ -69,36 +79,50 @@ function buildFlatSteps() {
         for (var r = 0; r < 3; r++) {
             // Past
             var pastIdx = flat.length;
+            pastCount++;
             flat.push({
                 id: pastIdx,
                 key: "awehyb",
                 set: setNum,
+                stepNumber: pastCount,
+                stepTitle: "Past " + pastCount,
                 nowAnchorIndex: currentNowAnchor
             });
 
             // Compare Past to Now
+            var ctaPastIdx = flat.length;
+            compareCount++;
             flat.push({
-                id: flat.length,
+                id: ctaPastIdx,
                 key: "cta",
                 set: setNum,
+                stepNumber: compareCount,
+                stepTitle: "Compare " + compareCount,
                 compareTargetIndex: pastIdx,
                 nowAnchorIndex: currentNowAnchor
             });
 
             // Future
             var futIdx = flat.length;
+            futureCount++;
             flat.push({
                 id: futIdx,
                 key: "awemyb",
                 set: setNum,
+                stepNumber: futureCount,
+                stepTitle: "Future " + futureCount,
                 nowAnchorIndex: currentNowAnchor
             });
 
             // Compare Future to Now
+            var ctaFutIdx = flat.length;
+            compareCount++;
             flat.push({
-                id: flat.length,
+                id: ctaFutIdx,
                 key: "cta",
                 set: setNum,
+                stepNumber: compareCount,
+                stepTitle: "Compare " + compareCount,
                 compareTargetIndex: futIdx,
                 nowAnchorIndex: currentNowAnchor
             });
@@ -110,6 +134,8 @@ function buildFlatSteps() {
         id: flat.length,
         key: "review",
         set: 6,
+        stepNumber: 1,
+        stepTitle: "Session Review",
         nowAnchorIndex: currentNowAnchor
     });
 
@@ -118,6 +144,8 @@ function buildFlatSteps() {
         id: flat.length,
         key: "awitdbwykatsawykn",
         set: 6,
+        stepNumber: 1,
+        stepTitle: "Emergent Insight",
         nowAnchorIndex: 0, // Compares start to end
         compareTargetIndex: currentNowAnchor
     });

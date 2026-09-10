@@ -315,12 +315,14 @@ ApplicationWindow {
     function stepTypeColor(key) {
         if (key === "awehyb") return colPast;
         if (key === "awemyb") return colFuture;
-        if (key === "now" || key === "p4_starter") return colCyan;
+        if (key === "now" || key === "p4_starter") return colGold;
         if (key === "awitdbwykatsawykn") return colGold;
+        if (key === "cta") return colCyan;
         return colCyan;
     }
 
     function stepTypeBadge(key) {
+        if (currentStep && currentStep.stepTitle) return currentStep.stepTitle.toUpperCase();
         if (key === "awehyb") return "PAST";
         if (key === "awemyb") return "FUTURE";
         if (key === "now" || key === "p4_starter") return "NOW";
@@ -852,6 +854,8 @@ ApplicationWindow {
                                 lastX = mouse.x;
                                 lastY = mouse.y;
                                 spiralCanvas.requestPaint();
+                            } else {
+                                spiralCanvas.requestPaint();
                             }
                         }
 
@@ -1343,7 +1347,7 @@ ApplicationWindow {
                                 }
                             }
 
-                            // Progress Track (Now indicator + Step Subtitle)
+                            // Progress Track (Dynamic Step indicator + Step Subtitle)
                             Rectangle {
                                 width: parent.width
                                 height: 32
@@ -1360,20 +1364,20 @@ ApplicationWindow {
                                         width: 8
                                         height: 8
                                         radius: 4
-                                        color: colGold
+                                        color: currentStep ? stepTypeColor(currentStepType) : colGold
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
 
                                     Text {
-                                        text: "Now " + currentSet
-                                        color: colGold
+                                        text: currentStep ? (currentStep.stepTitle || ("Step " + (currentStepIndex + 1))) : "Complete"
+                                        color: currentStep ? stepTypeColor(currentStepType) : colGold
                                         font.bold: true
                                         font.pixelSize: 11
                                         anchors.verticalCenter: parent.verticalCenter
                                     }
 
                                     Text {
-                                        text: "• " + ProcessData.getProgressSubtitle(currentStepType)
+                                        text: "• " + (currentStep ? ("Set " + currentStep.set + " • ") : "") + ProcessData.getProgressSubtitle(currentStepType)
                                         color: colMuted
                                         font.pixelSize: 11
                                         anchors.verticalCenter: parent.verticalCenter

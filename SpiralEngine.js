@@ -54,11 +54,13 @@ function reset() {
     isRotating = false;
 }
 
-function addNode(type, id, label, nowIdx) {
+function addNode(type, id, label, nowIdx, stepTitle, stepNumber) {
     var node = {
         type: type, // 'now', 'past', 'future', 'insight'
         id: id,
         label: label || "",
+        stepTitle: stepTitle || (type.toUpperCase() + " " + (stepNumber || (id + 1))),
+        stepNumber: stepNumber || 1,
         nowIndex: nowIdx,
         opacity: 0.0,
         dragOffset: { x: 0, y: 0, z: 0 },
@@ -72,11 +74,18 @@ function addNode(type, id, label, nowIdx) {
     return node;
 }
 
-function addConnection(fromId, toId, label) {
+function addConnection(fromId, toId, label, stepId, stepTitle, stepNumber) {
     connections.push({
+        id: (stepId !== undefined) ? stepId : -1,
         fromId: fromId,
         toId: toId,
-        label: label || ""
+        label: label || "",
+        stepTitle: stepTitle || ("Compare " + (stepNumber || 1)),
+        stepNumber: stepNumber || 1,
+        type: "compare",
+        midX: 0,
+        midY: 0,
+        midScale: 1.0
     });
 }
 
@@ -212,7 +221,7 @@ function rebuildFromSession(flatSteps, answers, currentStepIndex, preserveOffset
         if (step.key !== "cta" && step.key !== "review") {
             var nodeNowIndex = replayNowIndex;
             if (nodeType === "insight") nodeNowIndex = replayNowIndex + 1;
-            var newNode = addNode(nodeType, step.id, ansText, nodeNowIndex);
+            var newNode = addNode(nodeType, step.id, ansText, nodeNowIndex, step.stepTitle, step.stepNumber);
             if (savedOffsets[step.id]) {
                 newNode.dragOffset = {
                     x: savedOffsets[step.id].x,
@@ -230,7 +239,7 @@ function rebuildFromSession(flatSteps, answers, currentStepIndex, preserveOffset
                 }
             }
             if (nowStep) {
-                addConnection(fromId, nowStep.id, ansText);
+                addConnection(fromId, nowStep.id, ansText, step.id, step.stepTitle, step.stepNumber);
             }
         }
 
@@ -311,6 +320,8 @@ function render(ctx, w, h, mouseX, mouseY) {
             type: node.type,
             id: node.id,
             label: node.label,
+            stepTitle: node.stepTitle,
+            stepNumber: node.stepNumber,
             nowIndex: node.nowIndex,
             orbitY: node.orbitY,
             dragOffset: node.dragOffset,
@@ -419,14 +430,46 @@ function render(ctx, w, h, mouseX, mouseY) {
         }
 
         if (fromNode && toNode && fromNode.scale > 0 && toNode.scale > 0) {
-            ctx.beginPath();
-            ctx.strokeStyle = (fromNode.type === "past") ? "rgba(59, 130, 246, 0.45)" : "rgba(217, 70, 239, 0.45)";
-            if (ctx.setLineDash) ctx.setLineDash([4, 4]);
+            var midScale = (fromNode.scale + toNode.scale) * 0.5;
+            var midX = (fromNode.x + toNode.x) * 0.5;
+            var midY = (fromNode.y + toNode.y) * 0.5;
+            conn.midX = midX;
+            conn.midY = midY;
+            conn.midScale = midScale;
+
+            var distToMid = Math.sqrt((mouseX - midX) * (mouseX - midX) + (mouseY - midY) * (mouseY - midY));
+            var isConnHovered = (distToMid < Math.max(18, 28 * midScale));
 
             var dist = Math.sqrt((toNode.x - fromNode.x) * (toNode.x - fromNode.x) + (toNode.y - fromNode.y) * (toNode.y - fromNode.y));
             var angle = Math.atan2(toNode.y - fromNode.y, toNode.x - fromNode.x);
             var amplitude = 25 * fromNode.scale;
             var cSegments = 24;
+
+            // Check along arc segments if not directly over midpoint
+            if (!isConnHovered) {
+                for (var checkSeg = 4; checkSeg <= 20; checkSeg += 4) {
+                    var ctf = checkSeg / 24;
+                    var clx = fromNode.x + (toNode.x - fromNode.x) * ctf;
+                    var cly = fromNode.y + (toNode.y - fromNode.y) * ctf;
+                    var csVal = Math.sin(ctf * Math.PI * 2);
+                    if (fromNode.type === "future") csVal *= -1;
+                    var coffX = csVal * amplitude * -Math.sin(angle);
+                    var coffY = csVal * amplitude * Math.cos(angle);
+                    var cPtDist = Math.sqrt((mouseX - (clx + coffX)) * (mouseX - (clx + coffX)) + (mouseY - (cly + coffY)) * (mouseY - (cly + coffY)));
+                    if (cPtDist < Math.max(12, 18 * midScale)) {
+                        isConnHovered = true;
+                        break;
+                    }
+                }
+            }
+            conn.isHovered = isConnHovered;
+
+            // Draw Sine Arc
+            ctx.beginPath();
+            var arcCol = (fromNode.type === "past") ? "59, 130, 246" : "217, 70, 239";
+            ctx.strokeStyle = isConnHovered ? "rgba(6, 182, 212, 0.95)" : "rgba(" + arcCol + ", 0.45)";
+            ctx.lineWidth = isConnHovered ? 3.0 : 1.5;
+            if (ctx.setLineDash) ctx.setLineDash([4, 4]);
 
             ctx.moveTo(fromNode.x, fromNode.y);
             for (var cs = 1; cs <= cSegments; cs++) {
@@ -444,6 +487,37 @@ function render(ctx, w, h, mouseX, mouseY) {
             }
             ctx.stroke();
             if (ctx.setLineDash) ctx.setLineDash([]);
+
+            // Draw Midpoint Comparison Nexus Glyph
+            ctx.save();
+            var nRad = (isConnHovered ? 8 : 5.5) * midScale;
+            var nGrad = ctx.createRadialGradient(midX, midY, 0, midX, midY, nRad * 3);
+            nGrad.addColorStop(0, isConnHovered ? "rgba(6, 182, 212, 0.9)" : "rgba(" + arcCol + ", 0.7)");
+            nGrad.addColorStop(1, "rgba(" + arcCol + ", 0)");
+            ctx.fillStyle = nGrad;
+            ctx.beginPath();
+            ctx.arc(midX, midY, nRad * 3, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = isConnHovered ? "#ffffff" : "rgba(" + arcCol + ", 0.95)";
+            ctx.beginPath();
+            ctx.moveTo(midX, midY - nRad);
+            ctx.lineTo(midX + nRad, midY);
+            ctx.lineTo(midX, midY + nRad);
+            ctx.lineTo(midX - nRad, midY);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = isConnHovered ? "#06b6d4" : "#ffffff";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            if (isConnHovered || midScale > 0.88) {
+                ctx.fillStyle = isConnHovered ? "#38bdf8" : "rgba(203, 213, 225, 0.85)";
+                ctx.font = "bold " + Math.max(9, Math.round(10 * midScale)) + "px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText(conn.stepTitle, midX, midY - nRad - 4);
+            }
+            ctx.restore();
         }
     }
 
@@ -530,35 +604,60 @@ function render(ctx, w, h, mouseX, mouseY) {
 
             var labelText = rNode.label;
             if (!labelText) {
-                labelText = rNode.type.toUpperCase() + " " + (rNode.id + 1);
+                labelText = rNode.stepTitle || (rNode.type.toUpperCase() + " " + (rNode.stepNumber || (rNode.id + 1)));
+            } else {
+                labelText = (rNode.stepTitle ? (rNode.stepTitle + ": ") : "") + labelText;
             }
             if (labelText.length > 26) labelText = labelText.substring(0, 23) + "...";
             ctx.fillText(labelText, rNode.x, rNode.y + ((rNode.type === "insight" ? 36 : 22) * rNode.scale));
         }
     }
 
-    // 7. Hover Tooltip
-    if (hoveredNodeObj) {
+    // Check hovered connection if no node hovered
+    var hoveredConnObj = null;
+    if (!hoveredNodeObj) {
+        for (var ci = 0; ci < connections.length; ci++) {
+            if (connections[ci].isHovered) {
+                hoveredConnObj = connections[ci];
+                break;
+            }
+        }
+    }
+
+    // 7. Hover Tooltip (Nodes & Compare Connections)
+    var activeHover = hoveredNodeObj || hoveredConnObj;
+    if (activeHover) {
         ctx.save();
-        var typeLabel = hoveredNodeObj.type.toUpperCase();
-        var tipText = "[" + typeLabel + "] " + (hoveredNodeObj.label || "(No response recorded yet)");
+        var tipHeader = activeHover.stepTitle || (activeHover.type ? activeHover.type.toUpperCase() : "ITEM");
+        var ansContent = activeHover.label ? ("\"" + activeHover.label + "\"") : "(No response recorded yet)";
+        var tipText = "[" + tipHeader + "] " + ansContent;
+
         ctx.font = "12px sans-serif";
-        var tWidth = Math.min(300, ctx.measureText(tipText).width + 20);
+        var tWidth = Math.min(380, ctx.measureText(tipText).width + 24);
 
-        ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
-        ctx.strokeStyle = "rgba(6, 182, 212, 0.5)";
-        ctx.lineWidth = 1;
-        var boxX = Math.min(w - tWidth - 10, Math.max(10, mouseX + 15));
-        var boxY = Math.min(h - 40, Math.max(10, mouseY + 15));
+        ctx.fillStyle = "rgba(15, 23, 42, 0.94)";
+        var borderCol = (activeHover.type === "future") ? "rgba(217, 70, 239, 0.8)" :
+                        (activeHover.type === "past") ? "rgba(59, 130, 246, 0.8)" :
+                        (activeHover.type === "compare") ? "rgba(6, 182, 212, 0.9)" : "rgba(245, 158, 11, 0.8)";
+        ctx.strokeStyle = borderCol;
+        ctx.lineWidth = 1.5;
+        var boxX = Math.min(w - tWidth - 12, Math.max(12, mouseX + 15));
+        var boxY = Math.min(h - 44, Math.max(12, mouseY + 15));
 
-        ctx.fillRect(boxX, boxY, tWidth, 26);
-        ctx.strokeRect(boxX, boxY, tWidth, 26);
+        ctx.beginPath();
+        if (ctx.roundRect) {
+            ctx.roundRect(boxX, boxY, tWidth, 28, 6);
+        } else {
+            ctx.rect(boxX, boxY, tWidth, 28);
+        }
+        ctx.fill();
+        ctx.stroke();
 
         ctx.fillStyle = "#f8fafc";
         ctx.textAlign = "left";
         var displayStr = tipText;
-        if (displayStr.length > 38) displayStr = displayStr.substring(0, 35) + "...";
-        ctx.fillText(displayStr, boxX + 10, boxY + 17);
+        if (displayStr.length > 50) displayStr = displayStr.substring(0, 47) + "...";
+        ctx.fillText(displayStr, boxX + 10, boxY + 18);
         ctx.restore();
     }
 }
@@ -585,7 +684,17 @@ function getNodeAt(mouseX, mouseY) {
 }
 
 function hasNodeAt(mouseX, mouseY) {
-    return getNodeAt(mouseX, mouseY) !== null;
+    if (getNodeAt(mouseX, mouseY) !== null) return true;
+    for (var i = 0; i < connections.length; i++) {
+        var conn = connections[i];
+        if (conn.isHovered) return true;
+        if (conn.midX !== undefined && conn.midX !== 0) {
+            var dx = mouseX - conn.midX;
+            var dy = mouseY - conn.midY;
+            if (Math.sqrt(dx * dx + dy * dy) < Math.max(18, 28 * (conn.midScale || 1))) return true;
+        }
+    }
+    return false;
 }
 
 function isDraggingNode() {

@@ -213,12 +213,14 @@ Panel {
   function stepTypeColor(key) {
     if (key === "awehyb") return root.pastColor;
     if (key === "awemyb") return root.futureColor;
-    if (key === "now" || key === "p4_starter") return root.cyanColor;
+    if (key === "now" || key === "p4_starter") return root.goldColor;
     if (key === "awitdbwykatsawykn") return root.goldColor;
+    if (key === "cta") return root.cyanColor;
     return root.accentColor;
   }
 
   function stepTypeBadge(key) {
+    if (root.currentStep && root.currentStep.stepTitle) return root.currentStep.stepTitle.toUpperCase();
     if (key === "awehyb") return "PAST";
     if (key === "awemyb") return "FUTURE";
     if (key === "now" || key === "p4_starter") return "NOW";
