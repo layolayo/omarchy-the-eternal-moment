@@ -205,6 +205,7 @@ function getPlaceholder(stepKey) {
 
 function getButtonText(stepIndex, stepKey) {
     if (stepIndex === 0) return "Launch";
+    if (stepKey === "awitdbwykatsawykn" || stepIndex >= 80) return "Complete Session ★";
     if (stepKey === "cta") return "Compare";
     if (stepKey === "now") return "Acknowledge Now";
     if (stepKey === "review") return "Review & Continue";

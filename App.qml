@@ -1412,7 +1412,10 @@ ApplicationWindow {
                                             width: parent.width - 105
                                             from: 1; to: 10; stepSize: 1; value: preClarity
                                             anchors.verticalCenter: parent.verticalCenter
-                                            onValueChanged: preClarity = Math.round(value)
+                                            onValueChanged: {
+                                                preClarity = Math.round(value);
+                                                if (currentStepIndex === 0) postClarity = preClarity;
+                                            }
                                         }
                                     }
 
@@ -1430,7 +1433,83 @@ ApplicationWindow {
                                             width: parent.width - 105
                                             from: 1; to: 10; stepSize: 1; value: preFocus
                                             anchors.verticalCenter: parent.verticalCenter
-                                            onValueChanged: preFocus = Math.round(value)
+                                            onValueChanged: {
+                                                preFocus = Math.round(value);
+                                                if (currentStepIndex === 0) postFocus = preFocus;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Post-session calibration slider row (visible on final step to measure progress)
+                            Rectangle {
+                                width: parent.width
+                                implicitHeight: postCalibCol.implicitHeight + 20
+                                radius: 10
+                                visible: currentStep && (currentStep.key === "awitdbwykatsawykn" || currentStepIndex === flatSteps.length - 1)
+                                color: "#160d2b"
+                                border.width: 1
+                                border.color: "#8b5cf6"
+
+                                Column {
+                                    id: postCalibCol
+                                    anchors.top: parent.top
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.margins: 10
+                                    spacing: 8
+
+                                    RowLayout {
+                                        width: parent.width
+                                        Text {
+                                            text: "✨ Post-Session Calibration:"
+                                            color: "#c4b5fd"
+                                            font.bold: true
+                                            font.pixelSize: 11
+                                        }
+                                        Item { Layout.fillWidth: true }
+                                        Text {
+                                            text: "Shift: " + ((postClarity - preClarity >= 0 ? "+" : "") + (postClarity - preClarity)) + " Clarity • " + ((postFocus - preFocus >= 0 ? "+" : "") + (postFocus - preFocus)) + " Focus"
+                                            color: colGold
+                                            font.bold: true
+                                            font.pixelSize: 10
+                                        }
+                                    }
+
+                                    Row {
+                                        width: parent.width
+                                        spacing: 8
+                                        Text {
+                                            text: "Clarity (" + postClarity + "/10):"
+                                            color: colForeground
+                                            font.pixelSize: 11
+                                            width: 95
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                        Slider {
+                                            width: parent.width - 105
+                                            from: 1; to: 10; stepSize: 1; value: postClarity
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            onValueChanged: postClarity = Math.round(value)
+                                        }
+                                    }
+
+                                    Row {
+                                        width: parent.width
+                                        spacing: 8
+                                        Text {
+                                            text: "Focus (" + postFocus + "/10):"
+                                            color: colForeground
+                                            font.pixelSize: 11
+                                            width: 95
+                                            anchors.verticalCenter: parent.verticalCenter
+                                        }
+                                        Slider {
+                                            width: parent.width - 105
+                                            from: 1; to: 10; stepSize: 1; value: postFocus
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            onValueChanged: postFocus = Math.round(value)
                                         }
                                     }
                                 }
@@ -1811,6 +1890,165 @@ ApplicationWindow {
                             font.pixelSize: 16
                             font.bold: true
                             wrapMode: Text.WordWrap
+                        }
+                    }
+                }
+
+                // Progress Made & Metric Shift Callout
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: progressCol.implicitHeight + 24
+                    radius: 12
+                    color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.08)
+                    border.width: 1.5
+                    border.color: colCyan
+
+                    ColumnLayout {
+                        id: progressCol
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.margins: 16
+                        spacing: 10
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Text {
+                                text: "📈 PROGRESS MADE · ATTENTIONAL & COGNITIVE SHIFT"
+                                color: colCyan
+                                font.bold: true
+                                font.pixelSize: 11
+                                font.letterSpacing: 1
+                            }
+                            Item { Layout.fillWidth: true }
+                            Text {
+                                text: "Pre vs Post Calibration"
+                                color: "#94a3b8"
+                                font.pixelSize: 11
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 16
+
+                            // Clarity Metric Block
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 62
+                                radius: 8
+                                color: Qt.rgba(colCardBg.r, colCardBg.g, colCardBg.b, 0.6)
+                                border.width: 1
+                                border.color: colBorder
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 12
+                                    spacing: 10
+
+                                    ColumnLayout {
+                                        spacing: 2
+                                        Text {
+                                            text: "Mental Clarity"
+                                            color: "#94a3b8"
+                                            font.pixelSize: 11
+                                            font.bold: true
+                                        }
+                                        Text {
+                                            property var sessionData: viewingSession || Database.loadSession(activeSessionId)
+                                            property int preVal: sessionData ? (sessionData.pre_clarity || 5) : 5
+                                            property int postVal: sessionData ? (sessionData.post_clarity || 5) : 5
+                                            text: preVal + "/10 → " + postVal + "/10"
+                                            color: colForeground
+                                            font.pixelSize: 15
+                                            font.bold: true
+                                        }
+                                    }
+
+                                    Item { Layout.fillWidth: true }
+
+                                    Rectangle {
+                                        property var sessionData: viewingSession || Database.loadSession(activeSessionId)
+                                        property int diff: (sessionData ? (sessionData.post_clarity || 5) : 5) - (sessionData ? (sessionData.pre_clarity || 5) : 5)
+                                        radius: 6
+                                        implicitWidth: clarityDiffText.implicitWidth + 16
+                                        implicitHeight: 28
+                                        color: diff > 0 ? Qt.rgba(16/255, 185/255, 129/255, 0.2) : (diff < 0 ? Qt.rgba(239/255, 68/255, 68/255, 0.2) : Qt.rgba(148/255, 163/255, 184/255, 0.15))
+                                        border.width: 1
+                                        border.color: diff > 0 ? "#10b981" : (diff < 0 ? "#ef4444" : "#64748b")
+
+                                        Text {
+                                            id: clarityDiffText
+                                            anchors.centerIn: parent
+                                            property var sessionData: viewingSession || Database.loadSession(activeSessionId)
+                                            property int diff: (sessionData ? (sessionData.post_clarity || 5) : 5) - (sessionData ? (sessionData.pre_clarity || 5) : 5)
+                                            text: (diff >= 0 ? "+" : "") + diff + " Shift"
+                                            color: diff > 0 ? "#10b981" : (diff < 0 ? "#ef4444" : "#94a3b8")
+                                            font.bold: true
+                                            font.pixelSize: 11
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Focus Metric Block
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 62
+                                radius: 8
+                                color: Qt.rgba(colCardBg.r, colCardBg.g, colCardBg.b, 0.6)
+                                border.width: 1
+                                border.color: colBorder
+
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 12
+                                    spacing: 10
+
+                                    ColumnLayout {
+                                        spacing: 2
+                                        Text {
+                                            text: "Present Focus"
+                                            color: "#94a3b8"
+                                            font.pixelSize: 11
+                                            font.bold: true
+                                        }
+                                        Text {
+                                            property var sessionData: viewingSession || Database.loadSession(activeSessionId)
+                                            property int preVal: sessionData ? (sessionData.pre_focus || 5) : 5
+                                            property int postVal: sessionData ? (sessionData.post_focus || 5) : 5
+                                            text: preVal + "/10 → " + postVal + "/10"
+                                            color: colForeground
+                                            font.pixelSize: 15
+                                            font.bold: true
+                                        }
+                                    }
+
+                                    Item { Layout.fillWidth: true }
+
+                                    Rectangle {
+                                        property var sessionData: viewingSession || Database.loadSession(activeSessionId)
+                                        property int diff: (sessionData ? (sessionData.post_focus || 5) : 5) - (sessionData ? (sessionData.pre_focus || 5) : 5)
+                                        radius: 6
+                                        implicitWidth: focusDiffText.implicitWidth + 16
+                                        implicitHeight: 28
+                                        color: diff > 0 ? Qt.rgba(16/255, 185/255, 129/255, 0.2) : (diff < 0 ? Qt.rgba(239/255, 68/255, 68/255, 0.2) : Qt.rgba(148/255, 163/255, 184/255, 0.15))
+                                        border.width: 1
+                                        border.color: diff > 0 ? "#10b981" : (diff < 0 ? "#ef4444" : "#64748b")
+
+                                        Text {
+                                            id: focusDiffText
+                                            anchors.centerIn: parent
+                                            property var sessionData: viewingSession || Database.loadSession(activeSessionId)
+                                            property int diff: (sessionData ? (sessionData.post_focus || 5) : 5) - (sessionData ? (sessionData.pre_focus || 5) : 5)
+                                            text: (diff >= 0 ? "+" : "") + diff + " Shift"
+                                            color: diff > 0 ? "#10b981" : (diff < 0 ? "#ef4444" : "#94a3b8")
+                                            font.bold: true
+                                            font.pixelSize: 11
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }

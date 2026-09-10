@@ -617,7 +617,10 @@ Panel {
                   to: 10
                   stepSize: 1
                   value: root.preClarity
-                  onValueChanged: root.preClarity = Math.round(value)
+                  onValueChanged: {
+                    root.preClarity = Math.round(value);
+                    if (root.currentStepIndex === 0) root.postClarity = root.preClarity;
+                  }
                 }
               }
 
@@ -640,7 +643,92 @@ Panel {
                   to: 10
                   stepSize: 1
                   value: root.preFocus
-                  onValueChanged: root.preFocus = Math.round(value)
+                  onValueChanged: {
+                    root.preFocus = Math.round(value);
+                    if (root.currentStepIndex === 0) root.postFocus = root.preFocus;
+                  }
+                }
+              }
+            }
+          }
+
+          // Post-session calibration (Collapsible card during final step)
+          BorderSurface {
+            width: parent.width
+            visible: root.currentStepIndex + 1 >= root.flatSteps.length
+            implicitHeight: postCalibCol.implicitHeight + Style.space(18)
+            color: Qt.rgba(root.accentColor.r, root.accentColor.g, root.accentColor.b, 0.08)
+            radius: Style.cornerRadius
+            borderSpec: Border.flat(root.goldColor, 1)
+
+            Column {
+              id: postCalibCol
+              width: parent.width - Style.space(20)
+              anchors.centerIn: parent
+              spacing: Style.space(8)
+
+              Row {
+                width: parent.width
+                Text {
+                  text: "✨ Post-Session Calibration"
+                  color: root.goldColor
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption
+                  font.bold: true
+                }
+                Item { width: Math.max(Style.space(10), parent.width - Style.space(240)); height: 1 }
+                Text {
+                  text: "Shift: " + ((root.postClarity - root.preClarity >= 0 ? "+" : "") + (root.postClarity - root.preClarity)) + " Clarity • " + ((root.postFocus - root.preFocus >= 0 ? "+" : "") + (root.postFocus - root.preFocus)) + " Focus"
+                  color: root.cyanColor
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption - 1
+                  font.bold: true
+                }
+              }
+
+              Row {
+                width: parent.width
+                spacing: Style.space(8)
+
+                Text {
+                  width: Style.space(90)
+                  anchors.verticalCenter: parent.verticalCenter
+                  text: "Clarity: " + root.postClarity + "/10"
+                  color: root.foreground
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption
+                }
+
+                Controls.Slider {
+                  width: parent.width - Style.space(100)
+                  from: 1
+                  to: 10
+                  stepSize: 1
+                  value: root.postClarity
+                  onValueChanged: root.postClarity = Math.round(value)
+                }
+              }
+
+              Row {
+                width: parent.width
+                spacing: Style.space(8)
+
+                Text {
+                  width: Style.space(90)
+                  anchors.verticalCenter: parent.verticalCenter
+                  text: "Focus: " + root.postFocus + "/10"
+                  color: root.foreground
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption
+                }
+
+                Controls.Slider {
+                  width: parent.width - Style.space(100)
+                  from: 1
+                  to: 10
+                  stepSize: 1
+                  value: root.postFocus
+                  onValueChanged: root.postFocus = Math.round(value)
                 }
               }
             }
@@ -881,6 +969,156 @@ Panel {
                 font.bold: true
                 lineHeight: 1.25
                 wrapMode: Text.WordWrap
+              }
+            }
+          }
+
+          // Progress Made & Metric Shift Callout Card
+          BorderSurface {
+            width: parent.width
+            implicitHeight: progCol.implicitHeight + Style.space(20)
+            color: Qt.rgba(root.cyanColor.r, root.cyanColor.g, root.cyanColor.b, 0.08)
+            radius: Style.cornerRadius
+            borderSpec: Border.flat(root.cyanColor, 1.2)
+
+            Column {
+              id: progCol
+              width: parent.width - Style.space(20)
+              anchors.centerIn: parent
+              spacing: Style.space(8)
+
+              Row {
+                width: parent.width
+                Text {
+                  text: "📈 Progress Made · Attentional & Cognitive Shift"
+                  color: root.cyanColor
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption
+                  font.bold: true
+                }
+              }
+
+              Row {
+                width: parent.width
+                spacing: Style.space(12)
+
+                // Clarity Block
+                Rectangle {
+                  width: (parent.width - Style.space(12)) / 2
+                  height: Style.space(48)
+                  radius: Style.cornerRadius - 2
+                  color: Qt.rgba(root.background.r, root.background.g, root.background.b, 0.5)
+                  border.width: 1
+                  border.color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.1)
+
+                  Row {
+                    anchors.fill: parent
+                    anchors.margins: Style.space(8)
+                    spacing: Style.space(8)
+
+                    Column {
+                      width: parent.width - Style.space(70)
+                      anchors.verticalCenter: parent.verticalCenter
+                      Text {
+                        text: "Clarity"
+                        color: root.mutedColor
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 2
+                        font.bold: true
+                      }
+                      Text {
+                        property var s: root.viewingSession || Database.loadSession(root.activeSessionId)
+                        text: (s ? (s.pre_clarity || 5) : 5) + "/10 → " + (s ? (s.post_clarity || 5) : 5) + "/10"
+                        color: root.foreground
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption
+                        font.bold: true
+                      }
+                    }
+
+                    Rectangle {
+                      anchors.verticalCenter: parent.verticalCenter
+                      property var s: root.viewingSession || Database.loadSession(root.activeSessionId)
+                      property int diff: (s ? (s.post_clarity || 5) : 5) - (s ? (s.pre_clarity || 5) : 5)
+                      width: Style.space(60)
+                      height: Style.space(24)
+                      radius: 4
+                      color: diff > 0 ? Qt.rgba(16/255, 185/255, 129/255, 0.2) : (diff < 0 ? Qt.rgba(239/255, 68/255, 68/255, 0.2) : Qt.rgba(148/255, 163/255, 184/255, 0.15))
+                      border.width: 1
+                      border.color: diff > 0 ? "#10b981" : (diff < 0 ? "#ef4444" : "#64748b")
+
+                      Text {
+                        anchors.centerIn: parent
+                        property var s: root.viewingSession || Database.loadSession(root.activeSessionId)
+                        property int diff: (s ? (s.post_clarity || 5) : 5) - (s ? (s.pre_clarity || 5) : 5)
+                        text: (diff >= 0 ? "+" : "") + diff
+                        color: diff > 0 ? "#10b981" : (diff < 0 ? "#ef4444" : root.mutedColor)
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 1
+                        font.bold: true
+                      }
+                    }
+                  }
+                }
+
+                // Focus Block
+                Rectangle {
+                  width: (parent.width - Style.space(12)) / 2
+                  height: Style.space(48)
+                  radius: Style.cornerRadius - 2
+                  color: Qt.rgba(root.background.r, root.background.g, root.background.b, 0.5)
+                  border.width: 1
+                  border.color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.1)
+
+                  Row {
+                    anchors.fill: parent
+                    anchors.margins: Style.space(8)
+                    spacing: Style.space(8)
+
+                    Column {
+                      width: parent.width - Style.space(70)
+                      anchors.verticalCenter: parent.verticalCenter
+                      Text {
+                        text: "Focus"
+                        color: root.mutedColor
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 2
+                        font.bold: true
+                      }
+                      Text {
+                        property var s: root.viewingSession || Database.loadSession(root.activeSessionId)
+                        text: (s ? (s.pre_focus || 5) : 5) + "/10 → " + (s ? (s.post_focus || 5) : 5) + "/10"
+                        color: root.foreground
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption
+                        font.bold: true
+                      }
+                    }
+
+                    Rectangle {
+                      anchors.verticalCenter: parent.verticalCenter
+                      property var s: root.viewingSession || Database.loadSession(root.activeSessionId)
+                      property int diff: (s ? (s.post_focus || 5) : 5) - (s ? (s.pre_focus || 5) : 5)
+                      width: Style.space(60)
+                      height: Style.space(24)
+                      radius: 4
+                      color: diff > 0 ? Qt.rgba(16/255, 185/255, 129/255, 0.2) : (diff < 0 ? Qt.rgba(239/255, 68/255, 68/255, 0.2) : Qt.rgba(148/255, 163/255, 184/255, 0.15))
+                      border.width: 1
+                      border.color: diff > 0 ? "#10b981" : (diff < 0 ? "#ef4444" : "#64748b")
+
+                      Text {
+                        anchors.centerIn: parent
+                        property var s: root.viewingSession || Database.loadSession(root.activeSessionId)
+                        property int diff: (s ? (s.post_focus || 5) : 5) - (s ? (s.pre_focus || 5) : 5)
+                        text: (diff >= 0 ? "+" : "") + diff
+                        color: diff > 0 ? "#10b981" : (diff < 0 ? "#ef4444" : root.mutedColor)
+                        font.family: root.fontFamily
+                        font.pixelSize: Style.font.caption - 1
+                        font.bold: true
+                      }
+                    }
+                  }
+                }
               }
             }
           }
