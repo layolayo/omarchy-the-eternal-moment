@@ -627,7 +627,7 @@ Panel {
                     font.pixelSize: Style.space(11)
                   }
                   Text {
-                    text: "Clarity " + root.preClarity + "/10 (Foggy-Clear) • Movement " + root.preMovement + "/10 (Stuck-Flowing)"
+                    text: "Clarity (Foggy — Clear) • Movement (Stuck — Flowing)"
                     color: root.foreground
                     font.family: root.fontFamily
                     font.pixelSize: Style.space(11)
@@ -810,23 +810,12 @@ Panel {
                 width: parent.width
                 spacing: Style.space(4)
 
-                Row {
-                  width: parent.width
-                  Text {
-                    text: "Clarity"
-                    color: root.foreground
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.caption
-                    font.bold: true
-                  }
-                  Item { width: Math.max(Style.space(10), parent.width - Style.space(160)); height: 1 }
-                  Text {
-                    text: root.postClarity + " / 10"
-                    color: root.cyanColor
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.caption
-                    font.bold: true
-                  }
+                Text {
+                  text: "Clarity"
+                  color: root.foreground
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption
+                  font.bold: true
                 }
 
                 Row {
@@ -871,23 +860,12 @@ Panel {
                 width: parent.width
                 spacing: Style.space(4)
 
-                Row {
-                  width: parent.width
-                  Text {
-                    text: "Movement"
-                    color: root.foreground
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.caption
-                    font.bold: true
-                  }
-                  Item { width: Math.max(Style.space(10), parent.width - Style.space(160)); height: 1 }
-                  Text {
-                    text: root.postMovement + " / 10"
-                    color: root.cyanColor
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.caption
-                    font.bold: true
-                  }
+                Text {
+                  text: "Movement"
+                  color: root.foreground
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption
+                  font.bold: true
                 }
 
                 Row {
@@ -1492,23 +1470,12 @@ Panel {
             width: parent.width
             spacing: Style.space(6)
 
-            Row {
-              width: parent.width
-              Text {
-                text: "Clarity"
-                color: root.cyanColor
-                font.family: root.fontFamily
-                font.bold: true
-                font.pixelSize: Style.font.caption
-              }
-              Item { width: Math.max(Style.space(10), parent.width - Style.space(160)); height: 1 }
-              Text {
-                text: root.preClarity + " / 10"
-                color: root.foreground
-                font.family: root.fontFamily
-                font.bold: true
-                font.pixelSize: Style.font.caption
-              }
+            Text {
+              text: "Clarity"
+              color: root.cyanColor
+              font.family: root.fontFamily
+              font.bold: true
+              font.pixelSize: Style.font.caption
             }
 
             Row {
@@ -1553,23 +1520,12 @@ Panel {
             width: parent.width
             spacing: Style.space(6)
 
-            Row {
-              width: parent.width
-              Text {
-                text: "Movement"
-                color: root.cyanColor
-                font.family: root.fontFamily
-                font.bold: true
-                font.pixelSize: Style.font.caption
-              }
-              Item { width: Math.max(Style.space(10), parent.width - Style.space(160)); height: 1 }
-              Text {
-                text: root.preMovement + " / 10"
-                color: root.foreground
-                font.family: root.fontFamily
-                font.bold: true
-                font.pixelSize: Style.font.caption
-              }
+            Text {
+              text: "Movement"
+              color: root.cyanColor
+              font.family: root.fontFamily
+              font.bold: true
+              font.pixelSize: Style.font.caption
             }
 
             Row {

@@ -1360,7 +1360,7 @@ ApplicationWindow {
                                                 spacing: 8
                                                 Text { text: "🎯"; font.pixelSize: 13 }
                                                 Text { text: "Quick Check-in:"; color: colCyan; font.bold: true; font.pixelSize: 11 }
-                                                Text { text: "Clarity " + preClarity + "/10 (Foggy-Clear) • Movement " + preMovement + "/10 (Stuck-Flowing)"; color: colForeground; font.pixelSize: 11 }
+                                                Text { text: "Clarity (Foggy — Clear) • Movement (Stuck — Flowing)"; color: colForeground; font.pixelSize: 11 }
                                                 Text { text: "✎"; color: colGold; font.bold: true; font.pixelSize: 11 }
                                             }
 
@@ -1588,12 +1588,7 @@ ApplicationWindow {
                                         width: parent.width
                                         spacing: 2
 
-                                        RowLayout {
-                                            width: parent.width
-                                            Text { text: "Clarity"; color: colForeground; font.bold: true; font.pixelSize: 11 }
-                                            Item { Layout.fillWidth: true }
-                                            Text { text: postClarity + " / 10"; color: colCyan; font.bold: true; font.pixelSize: 11 }
-                                        }
+                                        Text { text: "Clarity"; color: colForeground; font.bold: true; font.pixelSize: 11 }
 
                                         RowLayout {
                                             width: parent.width
@@ -1618,14 +1613,9 @@ ApplicationWindow {
                                     // Movement Slider (Stuck -> Flowing)
                                     Column {
                                         width: parent.width
-                                        spacing: 2
+                                        spacing: 4
 
-                                        RowLayout {
-                                            width: parent.width
-                                            Text { text: "Movement"; color: colForeground; font.bold: true; font.pixelSize: 11 }
-                                            Item { Layout.fillWidth: true }
-                                            Text { text: postMovement + " / 10"; color: colCyan; font.bold: true; font.pixelSize: 11 }
-                                        }
+                                        Text { text: "Movement"; color: colForeground; font.bold: true; font.pixelSize: 11 }
 
                                         RowLayout {
                                             width: parent.width
@@ -2745,21 +2735,11 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     spacing: 6
 
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Text {
-                            text: "Clarity"
-                            color: colCyan
-                            font.bold: true
-                            font.pixelSize: 14
-                        }
-                        Item { Layout.fillWidth: true }
-                        Text {
-                            text: preClarity + " / 10"
-                            color: colForeground
-                            font.bold: true
-                            font.pixelSize: 13
-                        }
+                    Text {
+                        text: "Clarity"
+                        color: colCyan
+                        font.bold: true
+                        font.pixelSize: 14
                     }
 
                     RowLayout {
@@ -2802,21 +2782,11 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     spacing: 6
 
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Text {
-                            text: "Movement"
-                            color: colCyan
-                            font.bold: true
-                            font.pixelSize: 14
-                        }
-                        Item { Layout.fillWidth: true }
-                        Text {
-                            text: preMovement + " / 10"
-                            color: colForeground
-                            font.bold: true
-                            font.pixelSize: 13
-                        }
+                    Text {
+                        text: "Movement"
+                        color: colCyan
+                        font.bold: true
+                        font.pixelSize: 14
                     }
 
                     RowLayout {
