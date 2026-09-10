@@ -879,15 +879,15 @@ ApplicationWindow {
                         anchors.top: parent.top
                         anchors.right: parent.right
                         anchors.margins: 16
-                        spacing: 8
+                        spacing: 10
                         z: 10
 
                         // 1. Reset Positions Button
                         Rectangle {
-                            height: 28
-                            width: resetBtnTxt.implicitWidth + 20
-                            radius: 14
-                            color: resetMouse.containsMouse ? Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.2) : Qt.rgba(15/255, 23/255, 42/255, 0.75)
+                            height: 32
+                            width: resetBtnTxt.implicitWidth + 24
+                            radius: 16
+                            color: resetMouse.containsMouse ? Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.2) : Qt.rgba(15/255, 23/255, 42/255, 0.8)
                             border.width: 1
                             border.color: resetMouse.containsMouse ? colCyan : "#334155"
 
@@ -915,19 +915,22 @@ ApplicationWindow {
 
                         // 2. Snapshot Button (Mirroring Ekology #snapshot-btn-eternity)
                         Rectangle {
-                            height: 28
-                            width: snapBtnTxt.implicitWidth + 20
-                            radius: 14
-                            color: snapMouse.containsMouse ? Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.25) : Qt.rgba(15/255, 23/255, 42/255, 0.75)
+                            height: 32
+                            width: snapRow.implicitWidth + 26
+                            radius: 16
+                            color: snapMouse.containsMouse ? Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.25) : Qt.rgba(15/255, 23/255, 42/255, 0.8)
                             border.width: 1
                             border.color: snapMouse.containsMouse ? colCyan : "#334155"
 
-                            RowLayout {
+                            Row {
+                                id: snapRow
                                 anchors.centerIn: parent
-                                spacing: 4
+                                spacing: 6
+
                                 Text {
                                     text: "📷"
-                                    font.pixelSize: 12
+                                    font.pixelSize: 13
+                                    anchors.verticalCenter: parent.verticalCenter
                                 }
                                 Text {
                                     id: snapBtnTxt
@@ -935,6 +938,7 @@ ApplicationWindow {
                                     color: snapMouse.containsMouse ? colCyan : colForeground
                                     font.pixelSize: 11
                                     font.bold: true
+                                    anchors.verticalCenter: parent.verticalCenter
                                 }
                             }
 
@@ -949,21 +953,24 @@ ApplicationWindow {
 
                         // 3. Share to X Button (Mirroring Ekology #share-x-btn-eternity)
                         Rectangle {
-                            height: 28
-                            width: shareBtnTxt.implicitWidth + 20
-                            radius: 14
+                            height: 32
+                            width: shareRow.implicitWidth + 26
+                            radius: 16
                             color: shareXMouse.containsMouse ? "#18181b" : "#000000"
                             border.width: 1
                             border.color: shareXMouse.containsMouse ? "#ffffff" : "#475569"
 
-                            RowLayout {
+                            Row {
+                                id: shareRow
                                 anchors.centerIn: parent
-                                spacing: 5
+                                spacing: 6
+
                                 Text {
                                     text: "𝕏"
                                     color: "#ffffff"
-                                    font.pixelSize: 13
+                                    font.pixelSize: 14
                                     font.bold: true
+                                    anchors.verticalCenter: parent.verticalCenter
                                 }
                                 Text {
                                     id: shareBtnTxt
@@ -971,6 +978,7 @@ ApplicationWindow {
                                     color: "#ffffff"
                                     font.pixelSize: 11
                                     font.bold: true
+                                    anchors.verticalCenter: parent.verticalCenter
                                 }
                             }
 
@@ -2144,12 +2152,12 @@ ApplicationWindow {
 
                     Rectangle {
                         height: 38
-                        width: 75
+                        width: cancelTxt.implicitWidth + 28
                         radius: 8
                         color: cancelShareMouse.containsMouse ? Qt.rgba(255, 255, 255, 0.08) : Qt.rgba(255, 255, 255, 0.04)
                         border.width: 1
                         border.color: "#334155"
-                        Text { anchors.centerIn: parent; text: "Cancel"; color: colMuted; font.pixelSize: 12 }
+                        Text { id: cancelTxt; anchors.centerIn: parent; text: "Cancel"; color: colMuted; font.pixelSize: 12 }
                         MouseArea {
                             id: cancelShareMouse
                             anchors.fill: parent
@@ -2161,12 +2169,12 @@ ApplicationWindow {
 
                     Rectangle {
                         height: 38
-                        width: 110
+                        width: copyImgTxt.implicitWidth + 28
                         radius: 8
                         color: copyImgMouse.containsMouse ? Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.2) : Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.1)
                         border.width: 1
                         border.color: colCyan
-                        Text { anchors.centerIn: parent; text: "📋 Copy Image"; color: colCyan; font.bold: true; font.pixelSize: 12 }
+                        Text { id: copyImgTxt; anchors.centerIn: parent; text: "📋 Copy Image"; color: colCyan; font.bold: true; font.pixelSize: 12 }
                         MouseArea {
                             id: copyImgMouse
                             anchors.fill: parent
@@ -2183,12 +2191,12 @@ ApplicationWindow {
 
                     Rectangle {
                         height: 38
-                        width: 105
+                        width: saveImgTxt.implicitWidth + 28
                         radius: 8
                         color: saveImgMouse.containsMouse ? Qt.rgba(colPast.r, colPast.g, colPast.b, 0.2) : Qt.rgba(colPast.r, colPast.g, colPast.b, 0.1)
                         border.width: 1
                         border.color: colPast
-                        Text { anchors.centerIn: parent; text: "💾 Save PNG"; color: colPast; font.bold: true; font.pixelSize: 12 }
+                        Text { id: saveImgTxt; anchors.centerIn: parent; text: "💾 Save PNG"; color: colPast; font.bold: true; font.pixelSize: 12 }
                         MouseArea {
                             id: saveImgMouse
                             anchors.fill: parent
@@ -2204,13 +2212,14 @@ ApplicationWindow {
 
                     Rectangle {
                         height: 38
-                        width: 135
+                        width: postXRow.implicitWidth + 32
                         radius: 8
                         color: postXMouse.containsMouse ? "#18181b" : "#000000"
                         border.width: 1.5
                         border.color: "#ffffff"
 
-                        RowLayout {
+                        Row {
+                            id: postXRow
                             anchors.centerIn: parent
                             spacing: 8
                             Text {
@@ -2218,12 +2227,14 @@ ApplicationWindow {
                                 color: "#ffffff"
                                 font.pixelSize: 15
                                 font.bold: true
+                                anchors.verticalCenter: parent.verticalCenter
                             }
                             Text {
                                 text: "Post to X"
                                 color: "#ffffff"
                                 font.bold: true
                                 font.pixelSize: 13
+                                anchors.verticalCenter: parent.verticalCenter
                             }
                         }
 
