@@ -33,6 +33,7 @@ ApplicationWindow {
     property int postMovement: 50
     property int postFocus: postMovement
     property bool isCheckinModalOpen: false
+    property bool isFinishMetricsModalOpen: false
     property var selectedTags: []
     property string sessionFeedback: ""
     property string copyStatusMessage: ""
@@ -109,6 +110,7 @@ ApplicationWindow {
         answerDraft = "";
         activeTab = "chamber";
         viewingSession = null;
+        isFinishMetricsModalOpen = false;
 
         var s = {
             uuid: sessionUuid,
@@ -179,8 +181,7 @@ ApplicationWindow {
     function advanceStep() {
         if (currentStepIndex >= flatSteps.length) {
             saveFinalMetrics();
-            viewingSession = Database.loadSession(activeSessionId);
-            activeTab = "report";
+            isFinishMetricsModalOpen = true;
             return;
         }
 
@@ -211,6 +212,10 @@ ApplicationWindow {
         activeSessionId = Database.saveSession(s);
         SpiralEngine.rebuildFromSession(flatSteps, answers, Math.min(currentStepIndex, flatSteps.length - 1));
         refreshHistory();
+
+        if (isDone) {
+            isFinishMetricsModalOpen = true;
+        }
 
         answerDraft = (currentStepIndex < flatSteps.length && answers[currentStepIndex]) ? answers[currentStepIndex] : "";
     }
@@ -1464,10 +1469,10 @@ ApplicationWindow {
 
 
 
-                            // Dedicated Finishing The Metrics Screen (When 80 inquiry steps complete)
+                            // Session Complete Card (Clean sidebar status when 81 inquiry steps complete)
                             Rectangle {
                                 width: parent.width
-                                implicitHeight: finishMetricsCol.implicitHeight + 24
+                                implicitHeight: compCol.implicitHeight + 24
                                 radius: 12
                                 color: "#160d2b"
                                 border.width: 1.5
@@ -1475,7 +1480,7 @@ ApplicationWindow {
                                 visible: currentStepIndex >= flatSteps.length
 
                                 Column {
-                                    id: finishMetricsCol
+                                    id: compCol
                                     anchors.top: parent.top
                                     anchors.left: parent.left
                                     anchors.right: parent.right
@@ -1485,7 +1490,7 @@ ApplicationWindow {
                                     RowLayout {
                                         width: parent.width
                                         Text {
-                                            text: "✨ FINISHING THE METRICS"
+                                            text: "✨ SESSION COMPLETE"
                                             color: colGold
                                             font.bold: true
                                             font.pixelSize: 11
@@ -1493,7 +1498,7 @@ ApplicationWindow {
                                         }
                                         Item { Layout.fillWidth: true }
                                         Text {
-                                            text: "Session Complete"
+                                            text: "81 / 81 Steps"
                                             color: "#10b981"
                                             font.bold: true
                                             font.pixelSize: 10
@@ -1503,14 +1508,14 @@ ApplicationWindow {
                                     // Final emergent insight harvest display
                                     Rectangle {
                                         width: parent.width
-                                        implicitHeight: insTextCol.implicitHeight + 16
+                                        implicitHeight: compInsTextCol.implicitHeight + 16
                                         radius: 8
                                         color: Qt.rgba(colGold.r, colGold.g, colGold.b, 0.08)
                                         border.width: 1
                                         border.color: Qt.rgba(colGold.r, colGold.g, colGold.b, 0.3)
 
                                         Column {
-                                            id: insTextCol
+                                            id: compInsTextCol
                                             anchors.top: parent.top
                                             anchors.left: parent.left
                                             anchors.right: parent.right
@@ -1518,12 +1523,10 @@ ApplicationWindow {
                                             spacing: 4
 
                                             Text {
-                                                text: "And, what is the difference between what you knew at the start and what you know now?"
-                                                color: colMuted
-                                                font.pixelSize: 11
-                                                font.italic: true
-                                                width: parent.width
-                                                wrapMode: Text.WordWrap
+                                                text: "Emergent Insight:"
+                                                color: colGold
+                                                font.pixelSize: 10
+                                                font.bold: true
                                             }
 
                                             Text {
@@ -1534,23 +1537,23 @@ ApplicationWindow {
                                                 }
                                                 color: colForeground
                                                 font.bold: true
-                                                font.pixelSize: 13
+                                                font.pixelSize: 12
                                                 wrapMode: Text.WordWrap
                                             }
                                         }
                                     }
 
-                                    // Live shift indicator
-                                    RowLayout {
+                                    // Live shift indicator pill
+                                    Rectangle {
                                         width: parent.width
+                                        height: 32
+                                        radius: 6
+                                        color: Qt.rgba(0, 0, 0, 0.3)
+                                        border.width: 1
+                                        border.color: Qt.rgba(colGold.r, colGold.g, colGold.b, 0.3)
+
                                         Text {
-                                            text: "Calibrate where you are now:"
-                                            color: "#c4b5fd"
-                                            font.bold: true
-                                            font.pixelSize: 11
-                                        }
-                                        Item { Layout.fillWidth: true }
-                                        Text {
+                                            anchors.centerIn: parent
                                             text: "Shift: " + ((postClarity - preClarity >= 0 ? "+" : "") + (postClarity - preClarity)) + "% Clarity • " + ((postMovement - preMovement >= 0 ? "+" : "") + (postMovement - preMovement)) + "% Movement"
                                             color: colGold
                                             font.bold: true
@@ -1558,112 +1561,76 @@ ApplicationWindow {
                                         }
                                     }
 
-                                    // Clarity Slider (Foggy -> Clear)
-                                    Column {
+                                    // Open Metrics Modal Button
+                                    Rectangle {
                                         width: parent.width
-                                        spacing: 2
+                                        height: 38
+                                        radius: 8
+                                        color: colGold
 
-                                        Text { text: "Clarity"; color: colForeground; font.bold: true; font.pixelSize: 11 }
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "✨ Calibrate Metrics Modal ★"
+                                            color: "#020617"
+                                            font.bold: true
+                                            font.pixelSize: 12
+                                        }
 
-                                        RowLayout {
-                                            width: parent.width
-                                            spacing: 6
-
-                                            Text { text: "Foggy"; color: colMuted; font.italic: true; font.pixelSize: 10 }
-                                            Slider {
-                                                Layout.fillWidth: true
-                                                from: 0
-                                                to: 100
-                                                stepSize: 1
-                                                value: postClarity
-                                                onValueChanged: {
-                                                    postClarity = Math.round(value);
-                                                    saveFinalMetrics();
-                                                }
-                                            }
-                                            Text { text: "Clear"; color: colMuted; font.italic: true; font.pixelSize: 10 }
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: isFinishMetricsModalOpen = true
                                         }
                                     }
 
-                                    // Movement Slider (Stuck -> Flowing)
-                                    Column {
+                                    // View Session Report Button
+                                    Rectangle {
                                         width: parent.width
-                                        spacing: 4
+                                        height: 36
+                                        radius: 8
+                                        color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.15)
+                                        border.width: 1
+                                        border.color: colCyan
 
-                                        Text { text: "Movement"; color: colForeground; font.bold: true; font.pixelSize: 11 }
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "📋 View Session Report"
+                                            color: colCyan
+                                            font.bold: true
+                                            font.pixelSize: 12
+                                        }
 
-                                        RowLayout {
-                                            width: parent.width
-                                            spacing: 6
-
-                                            Text { text: "Stuck"; color: colMuted; font.italic: true; font.pixelSize: 10 }
-                                            Slider {
-                                                Layout.fillWidth: true
-                                                from: 0
-                                                to: 100
-                                                stepSize: 1
-                                                value: postMovement
-                                                onValueChanged: {
-                                                    postMovement = Math.round(value);
-                                                    postFocus = postMovement;
-                                                    saveFinalMetrics();
-                                                }
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                saveFinalMetrics();
+                                                viewingSession = Database.loadSession(activeSessionId);
+                                                activeTab = "report";
                                             }
-                                            Text { text: "Flowing"; color: colMuted; font.italic: true; font.pixelSize: 10 }
                                         }
                                     }
 
-                                    // Action Buttons: View Report / New Session
-                                    RowLayout {
+                                    // New Session Button
+                                    Rectangle {
                                         width: parent.width
-                                        spacing: 10
+                                        height: 32
+                                        radius: 8
+                                        color: "transparent"
+                                        border.width: 1
+                                        border.color: colBorder
 
-                                        Rectangle {
-                                            Layout.fillWidth: true
-                                            height: 38
-                                            radius: 8
-                                            color: colGold
-
-                                            Text {
-                                                anchors.centerIn: parent
-                                                text: "📋 View Session Report ★"
-                                                color: "#020617"
-                                                font.bold: true
-                                                font.pixelSize: 12
-                                            }
-
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                cursorShape: Qt.PointingHandCursor
-                                                onClicked: {
-                                                    saveFinalMetrics();
-                                                    viewingSession = Database.loadSession(activeSessionId);
-                                                    activeTab = "report";
-                                                }
-                                            }
+                                        Text {
+                                            anchors.centerIn: parent
+                                            text: "🌀 Start New Session"
+                                            color: colMuted
+                                            font.pixelSize: 11
                                         }
 
-                                        Rectangle {
-                                            Layout.preferredWidth: 120
-                                            height: 38
-                                            radius: 8
-                                            color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.15)
-                                            border.width: 1
-                                            border.color: colCyan
-
-                                            Text {
-                                                anchors.centerIn: parent
-                                                text: "🌀 New Session"
-                                                color: colCyan
-                                                font.bold: true
-                                                font.pixelSize: 12
-                                            }
-
-                                            MouseArea {
-                                                anchors.fill: parent
-                                                cursorShape: Qt.PointingHandCursor
-                                                onClicked: startNewSession()
-                                            }
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: startNewSession()
                                         }
                                     }
                                 }
@@ -2833,6 +2800,306 @@ ApplicationWindow {
                         onClicked: {
                             isCheckinModalOpen = false;
                             saveFinalMetrics();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // -------------------------------------------------------------
+    // FINISHING THE METRICS MODAL OVERLAY
+    // -------------------------------------------------------------
+    Rectangle {
+        id: finishMetricsModalOverlay
+        anchors.fill: parent
+        z: 9998
+        visible: isFinishMetricsModalOpen
+        color: Qt.rgba(2/255, 6/255, 23/255, 0.92)
+
+        MouseArea {
+            anchors.fill: parent
+            // block clicks behind modal
+        }
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: Math.min(540, parent.width - 40)
+            height: finishMetricsModalCol.implicitHeight + 48
+            radius: 20
+            color: "#0b1226"
+            border.width: 1.5
+            border.color: Qt.rgba(colGold.r, colGold.g, colGold.b, 0.5)
+
+            ColumnLayout {
+                id: finishMetricsModalCol
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.margins: 28
+                spacing: 16
+
+                // Header
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 10
+
+                    Text { text: "✨"; font.pixelSize: 24 }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 2
+
+                        Text {
+                            text: "Finishing The Metrics"
+                            color: colGold
+                            font.pixelSize: 18
+                            font.bold: true
+                        }
+
+                        Text {
+                            text: "Session Complete · All 81 steps integrated"
+                            color: "#10b981"
+                            font.pixelSize: 12
+                            font.bold: true
+                        }
+                    }
+
+                    Rectangle {
+                        width: 28
+                        height: 28
+                        radius: 14
+                        color: Qt.rgba(255, 255, 255, 0.08)
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "✕"
+                            color: colMuted
+                            font.pixelSize: 12
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: isFinishMetricsModalOpen = false
+                        }
+                    }
+                }
+
+                Rectangle { Layout.fillWidth: true; height: 1; color: colBorder }
+
+                // Emergent Insight Harvest Card
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: modalInsContentCol.implicitHeight + 20
+                    radius: 10
+                    color: Qt.rgba(colGold.r, colGold.g, colGold.b, 0.08)
+                    border.width: 1
+                    border.color: Qt.rgba(colGold.r, colGold.g, colGold.b, 0.3)
+
+                    ColumnLayout {
+                        id: modalInsContentCol
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.margins: 14
+                        spacing: 6
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: "And, what is the difference between what you knew at the start and what you know now?"
+                            color: colMuted
+                            font.pixelSize: 11
+                            font.italic: true
+                            wrapMode: Text.WordWrap
+                        }
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: {
+                                var lastAns = (answers && answers[flatSteps.length - 1]) ? answers[flatSteps.length - 1] : ((answers && (answers[80] || answers[79])) ? (answers[80] || answers[79]) : "");
+                                return lastAns ? ("\"" + lastAns + "\"") : "Breakthrough insight recorded.";
+                            }
+                            color: colForeground
+                            font.bold: true
+                            font.pixelSize: 13
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+                }
+
+                // Live Shift Indicator
+                RowLayout {
+                    Layout.fillWidth: true
+
+                    Text {
+                        text: "Calibrate where you are now:"
+                        color: "#c4b5fd"
+                        font.bold: true
+                        font.pixelSize: 13
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    Text {
+                        text: "Shift: " + ((postClarity - preClarity >= 0 ? "+" : "") + (postClarity - preClarity)) + "% Clarity • " + ((postMovement - preMovement >= 0 ? "+" : "") + (postMovement - preMovement)) + "% Movement"
+                        color: colGold
+                        font.bold: true
+                        font.pixelSize: 13
+                    }
+                }
+
+                // Clarity Slider Group (Foggy -> Clear)
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+
+                    Text {
+                        text: "Clarity"
+                        color: colCyan
+                        font.bold: true
+                        font.pixelSize: 14
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+
+                        Text {
+                            text: "Foggy"
+                            color: colMuted
+                            font.italic: true
+                            font.pixelSize: 12
+                            Layout.preferredWidth: 44
+                        }
+
+                        Slider {
+                            Layout.fillWidth: true
+                            from: 0
+                            to: 100
+                            stepSize: 1
+                            value: postClarity
+                            onValueChanged: {
+                                postClarity = Math.round(value);
+                                saveFinalMetrics();
+                            }
+                        }
+
+                        Text {
+                            text: "Clear"
+                            color: colMuted
+                            font.italic: true
+                            font.pixelSize: 12
+                            horizontalAlignment: Text.AlignRight
+                            Layout.preferredWidth: 44
+                        }
+                    }
+                }
+
+                // Movement Slider Group (Stuck -> Flowing)
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 6
+
+                    Text {
+                        text: "Movement"
+                        color: colCyan
+                        font.bold: true
+                        font.pixelSize: 14
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+
+                        Text {
+                            text: "Stuck"
+                            color: colMuted
+                            font.italic: true
+                            font.pixelSize: 12
+                            Layout.preferredWidth: 44
+                        }
+
+                        Slider {
+                            Layout.fillWidth: true
+                            from: 0
+                            to: 100
+                            stepSize: 1
+                            value: postMovement
+                            onValueChanged: {
+                                postMovement = Math.round(value);
+                                postFocus = postMovement;
+                                saveFinalMetrics();
+                            }
+                        }
+
+                        Text {
+                            text: "Flowing"
+                            color: colMuted
+                            font.italic: true
+                            font.pixelSize: 12
+                            horizontalAlignment: Text.AlignRight
+                            Layout.preferredWidth: 44
+                        }
+                    }
+                }
+
+                Item { height: 6 }
+
+                // Action Buttons
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 12
+
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 44
+                        radius: 10
+                        color: colGold
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "📋 View Session Report ★"
+                            color: "#020617"
+                            font.bold: true
+                            font.pixelSize: 13
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                isFinishMetricsModalOpen = false;
+                                saveFinalMetrics();
+                                viewingSession = Database.loadSession(activeSessionId);
+                                activeTab = "report";
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.preferredWidth: 140
+                        height: 44
+                        radius: 10
+                        color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.15)
+                        border.width: 1
+                        border.color: colCyan
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "🌀 New Session"
+                            color: colCyan
+                            font.bold: true
+                            font.pixelSize: 13
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                isFinishMetricsModalOpen = false;
+                                startNewSession();
+                            }
                         }
                     }
                 }

@@ -30,6 +30,7 @@ Panel {
   property int postMovement: 50
   property int postFocus: postMovement
   property bool isCheckinModalOpen: false
+  property bool isFinishMetricsModalOpen: false
   property var selectedTags: []
   property string sessionFeedback: ""
   property string copyStatusMessage: ""
@@ -90,6 +91,7 @@ Panel {
     answerDraft = "";
     activeTab = "chamber";
     viewingSession = null;
+    isFinishMetricsModalOpen = false;
 
     // Persist draft
     var s = {
@@ -156,8 +158,7 @@ Panel {
   function advanceStep() {
     if (currentStepIndex >= flatSteps.length) {
       saveFinalMetrics();
-      viewingSession = Database.loadSession(activeSessionId);
-      activeTab = "report";
+      isFinishMetricsModalOpen = true;
       return;
     }
 
@@ -188,6 +189,10 @@ Panel {
     };
     activeSessionId = Database.saveSession(s);
     refreshHistory();
+
+    if (isDone) {
+      isFinishMetricsModalOpen = true;
+    }
 
     answerDraft = (currentStepIndex < flatSteps.length && answers[currentStepIndex]) ? answers[currentStepIndex] : "";
   }
@@ -668,17 +673,17 @@ Panel {
             }
           }
 
-          // Dedicated Finishing The Metrics Screen (When 80 inquiry steps complete)
+          // Session Complete Card (Clean sidebar status when 81 inquiry steps complete)
           BorderSurface {
             width: parent.width
-            implicitHeight: finishMetricsCol.implicitHeight + Style.space(24)
+            implicitHeight: compCol.implicitHeight + Style.space(24)
             color: Qt.rgba(0.09, 0.05, 0.17, 0.95)
             radius: Style.cornerRadius
             borderSpec: Border.flat(root.goldColor, 1.5)
             visible: root.currentStepIndex >= root.flatSteps.length
 
             Column {
-              id: finishMetricsCol
+              id: compCol
               width: parent.width - Style.space(24)
               anchors.centerIn: parent
               spacing: Style.space(12)
@@ -686,15 +691,15 @@ Panel {
               Row {
                 width: parent.width
                 Text {
-                  text: "✨ Finishing The Metrics"
+                  text: "✨ Session Complete"
                   color: root.goldColor
                   font.family: root.fontFamily
                   font.pixelSize: Style.font.caption
                   font.bold: true
                 }
-                Item { width: Math.max(Style.space(10), parent.width - Style.space(220)); height: 1 }
+                Item { width: Math.max(Style.space(10), parent.width - Style.space(200)); height: 1 }
                 Text {
-                  text: "Session Complete"
+                  text: "81 / 81 Steps"
                   color: "#10b981"
                   font.family: root.fontFamily
                   font.pixelSize: Style.font.caption - 1
@@ -705,26 +710,25 @@ Panel {
               // Final emergent insight harvest display
               Rectangle {
                 width: parent.width
-                height: insCol.implicitHeight + Style.space(16)
+                height: compInsCol.implicitHeight + Style.space(16)
                 radius: Style.cornerRadius - 2
                 color: Qt.rgba(root.goldColor.r, root.goldColor.g, root.goldColor.b, 0.08)
                 border.width: 1
                 border.color: Qt.rgba(root.goldColor.r, root.goldColor.g, root.goldColor.b, 0.3)
 
                 Column {
-                  id: insCol
+                  id: compInsCol
                   width: parent.width - Style.space(16)
                   anchors.centerIn: parent
                   spacing: Style.space(4)
 
                   Text {
                     width: parent.width
-                    text: "And, what is the difference between what you knew at the start and what you know now?"
-                    color: root.mutedColor
+                    text: "Emergent Insight:"
+                    color: root.goldColor
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.caption - 2
-                    font.italic: true
-                    wrapMode: Text.WordWrap
+                    font.bold: true
                   }
 
                   Text {
@@ -742,18 +746,17 @@ Panel {
                 }
               }
 
-              // Live shift indicator
-              Row {
+              // Live shift indicator pill
+              Rectangle {
                 width: parent.width
+                height: Style.space(32)
+                radius: Style.cornerRadius - 2
+                color: Qt.rgba(0, 0, 0, 0.3)
+                border.width: 1
+                border.color: Qt.rgba(root.goldColor.r, root.goldColor.g, root.goldColor.b, 0.3)
+
                 Text {
-                  text: "Calibrate where you are now:"
-                  color: "#c4b5fd"
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption
-                  font.bold: true
-                }
-                Item { width: Math.max(Style.space(10), parent.width - Style.space(260)); height: 1 }
-                Text {
+                  anchors.centerIn: parent
                   text: "Shift: " + ((root.postClarity - root.preClarity >= 0 ? "+" : "") + (root.postClarity - root.preClarity)) + "% Clarity • " + ((root.postMovement - root.preMovement >= 0 ? "+" : "") + (root.postMovement - root.preMovement)) + "% Movement"
                   color: root.goldColor
                   font.family: root.fontFamily
@@ -762,131 +765,34 @@ Panel {
                 }
               }
 
-              // Clarity Slider (Foggy -> Clear)
-              Column {
+              // Open Metrics Modal Button
+              Button {
                 width: parent.width
-                spacing: Style.space(4)
+                text: "✨ Calibrate Metrics Modal ★"
+                accent: root.goldColor
+                bordered: true
+                onClicked: root.isFinishMetricsModalOpen = true
+              }
 
-                Text {
-                  text: "Clarity"
-                  color: root.foreground
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption
-                  font.bold: true
-                }
-
-                Row {
-                  width: parent.width
-                  spacing: Style.space(8)
-
-                  Text {
-                    text: "Foggy"
-                    color: root.mutedColor
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.space(10)
-                    font.italic: true
-                    width: Style.space(44)
-                  }
-
-                  Controls.Slider {
-                    width: parent.width - Style.space(100)
-                    from: 0
-                    to: 100
-                    stepSize: 1
-                    value: root.postClarity
-                    onValueChanged: {
-                      root.postClarity = Math.round(value);
-                      root.saveFinalMetrics();
-                    }
-                  }
-
-                  Text {
-                    text: "Clear"
-                    color: root.mutedColor
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.space(10)
-                    font.italic: true
-                    horizontalAlignment: Text.AlignRight
-                    width: Style.space(44)
-                  }
+              // View Session Report Button
+              Button {
+                width: parent.width
+                text: "📋 View Session Report"
+                accent: root.cyanColor
+                bordered: true
+                onClicked: {
+                  root.saveFinalMetrics();
+                  root.viewingSession = Database.loadSession(root.activeSessionId);
+                  root.activeTab = "report";
                 }
               }
 
-              // Movement Slider (Stuck -> Flowing)
-              Column {
+              // New Session Button
+              Button {
                 width: parent.width
-                spacing: Style.space(4)
-
-                Text {
-                  text: "Movement"
-                  color: root.foreground
-                  font.family: root.fontFamily
-                  font.pixelSize: Style.font.caption
-                  font.bold: true
-                }
-
-                Row {
-                  width: parent.width
-                  spacing: Style.space(8)
-
-                  Text {
-                    text: "Stuck"
-                    color: root.mutedColor
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.space(10)
-                    font.italic: true
-                    width: Style.space(44)
-                  }
-
-                  Controls.Slider {
-                    width: parent.width - Style.space(100)
-                    from: 0
-                    to: 100
-                    stepSize: 1
-                    value: root.postMovement
-                    onValueChanged: {
-                      root.postMovement = Math.round(value);
-                      root.postFocus = root.postMovement;
-                      root.saveFinalMetrics();
-                    }
-                  }
-
-                  Text {
-                    text: "Flowing"
-                    color: root.mutedColor
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.space(10)
-                    font.italic: true
-                    horizontalAlignment: Text.AlignRight
-                    width: Style.space(44)
-                  }
-                }
-              }
-
-              // Action Buttons
-              Row {
-                width: parent.width
-                spacing: Style.space(10)
-
-                Button {
-                  width: parent.width - Style.space(130)
-                  text: "📋 View Session Report ★"
-                  accent: root.goldColor
-                  bordered: true
-                  onClicked: {
-                    root.saveFinalMetrics();
-                    root.viewingSession = Database.loadSession(root.activeSessionId);
-                    root.activeTab = "report";
-                  }
-                }
-
-                Button {
-                  width: Style.space(120)
-                  text: "🌀 New Session"
-                  accent: root.cyanColor
-                  bordered: true
-                  onClicked: root.startNewSession()
-                }
+                text: "🌀 Start New Session"
+                bordered: true
+                onClicked: root.startNewSession()
               }
             }
           }
@@ -1541,6 +1447,282 @@ Panel {
             onClicked: {
               root.isCheckinModalOpen = false;
               root.saveFinalMetrics();
+            }
+          }
+        }
+      }
+    }
+
+    // -------------------------------------------------------------
+    // FINISHING THE METRICS MODAL OVERLAY
+    // -------------------------------------------------------------
+    Rectangle {
+      id: finishMetricsModalOverlay
+      anchors.fill: parent
+      z: 9998
+      visible: root.isFinishMetricsModalOpen
+      color: Qt.rgba(root.background.r, root.background.g, root.background.b, 0.95)
+
+      MouseArea {
+        anchors.fill: parent
+        // block clicks behind modal
+      }
+
+      BorderSurface {
+        anchors.centerIn: parent
+        width: Math.min(Style.space(460), parent.width - Style.space(24))
+        implicitHeight: modalFinishCol.implicitHeight + Style.space(36)
+        radius: Style.cornerRadius
+        color: root.background
+        borderSpec: Border.flat(Qt.rgba(root.goldColor.r, root.goldColor.g, root.goldColor.b, 0.6), 1.5)
+
+        Column {
+          id: modalFinishCol
+          width: parent.width - Style.space(32)
+          anchors.centerIn: parent
+          spacing: Style.space(16)
+
+          // Header
+          Row {
+            width: parent.width
+            spacing: Style.space(8)
+
+            Text { text: "✨"; font.pixelSize: Style.space(20) }
+
+            Column {
+              width: parent.width - Style.space(60)
+              spacing: Style.space(2)
+
+              Text {
+                text: "Finishing The Metrics"
+                color: root.goldColor
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.heading - 2
+                font.bold: true
+              }
+
+              Text {
+                text: "Session Complete · All 81 steps integrated"
+                color: "#10b981"
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption - 1
+                font.bold: true
+              }
+            }
+
+            Rectangle {
+              width: Style.space(24)
+              height: Style.space(24)
+              radius: Style.space(12)
+              color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.08)
+
+              Text {
+                anchors.centerIn: parent
+                text: "✕"
+                color: root.mutedColor
+                font.pixelSize: Style.font.caption - 2
+              }
+
+              MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.isFinishMetricsModalOpen = false
+              }
+            }
+          }
+
+          Rectangle { width: parent.width; height: 1; color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.1) }
+
+          // Emergent Insight Harvest Card
+          Rectangle {
+            width: parent.width
+            height: modalInsTextCol.implicitHeight + Style.space(16)
+            radius: Style.cornerRadius - 2
+            color: Qt.rgba(root.goldColor.r, root.goldColor.g, root.goldColor.b, 0.08)
+            border.width: 1
+            border.color: Qt.rgba(root.goldColor.r, root.goldColor.g, root.goldColor.b, 0.3)
+
+            Column {
+              id: modalInsTextCol
+              width: parent.width - Style.space(16)
+              anchors.centerIn: parent
+              spacing: Style.space(4)
+
+              Text {
+                width: parent.width
+                text: "And, what is the difference between what you knew at the start and what you know now?"
+                color: root.mutedColor
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption - 2
+                font.italic: true
+                wrapMode: Text.WordWrap
+              }
+
+              Text {
+                width: parent.width
+                text: {
+                  var lastAns = (root.answers && root.answers[root.flatSteps.length - 1]) ? root.answers[root.flatSteps.length - 1] : ((root.answers && (root.answers[80] || root.answers[79])) ? (root.answers[80] || root.answers[79]) : "");
+                  return lastAns ? ("\"" + lastAns + "\"") : "Breakthrough insight recorded.";
+                }
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.caption
+                font.bold: true
+                wrapMode: Text.WordWrap
+              }
+            }
+          }
+
+          // Live Shift Indicator
+          Row {
+            width: parent.width
+            Text {
+              text: "Calibrate where you are now:"
+              color: "#c4b5fd"
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: true
+            }
+            Item { width: Math.max(Style.space(10), parent.width - Style.space(260)); height: 1 }
+            Text {
+              text: "Shift: " + ((root.postClarity - root.preClarity >= 0 ? "+" : "") + (root.postClarity - root.preClarity)) + "% Clarity • " + ((root.postMovement - root.preMovement >= 0 ? "+" : "") + (root.postMovement - root.preMovement)) + "% Movement"
+              color: root.goldColor
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption - 1
+              font.bold: true
+            }
+          }
+
+          // Clarity Slider Group (Foggy -> Clear)
+          Column {
+            width: parent.width
+            spacing: Style.space(6)
+
+            Text {
+              text: "Clarity"
+              color: root.cyanColor
+              font.family: root.fontFamily
+              font.bold: true
+              font.pixelSize: Style.font.caption
+            }
+
+            Row {
+              width: parent.width
+              spacing: Style.space(8)
+
+              Text {
+                text: "Foggy"
+                color: root.mutedColor
+                font.family: root.fontFamily
+                font.italic: true
+                font.pixelSize: Style.space(11)
+                width: Style.space(44)
+              }
+
+              Controls.Slider {
+                width: parent.width - Style.space(100)
+                from: 0
+                to: 100
+                stepSize: 1
+                value: root.postClarity
+                onValueChanged: {
+                  root.postClarity = Math.round(value);
+                  root.saveFinalMetrics();
+                }
+              }
+
+              Text {
+                text: "Clear"
+                color: root.mutedColor
+                font.family: root.fontFamily
+                font.italic: true
+                font.pixelSize: Style.space(11)
+                horizontalAlignment: Text.AlignRight
+                width: Style.space(44)
+              }
+            }
+          }
+
+          // Movement Slider Group (Stuck -> Flowing)
+          Column {
+            width: parent.width
+            spacing: Style.space(6)
+
+            Text {
+              text: "Movement"
+              color: root.cyanColor
+              font.family: root.fontFamily
+              font.bold: true
+              font.pixelSize: Style.font.caption
+            }
+
+            Row {
+              width: parent.width
+              spacing: Style.space(8)
+
+              Text {
+                text: "Stuck"
+                color: root.mutedColor
+                font.family: root.fontFamily
+                font.italic: true
+                font.pixelSize: Style.space(11)
+                width: Style.space(44)
+              }
+
+              Controls.Slider {
+                width: parent.width - Style.space(100)
+                from: 0
+                to: 100
+                stepSize: 1
+                value: root.postMovement
+                onValueChanged: {
+                  root.postMovement = Math.round(value);
+                  root.postFocus = root.postMovement;
+                  root.saveFinalMetrics();
+                }
+              }
+
+              Text {
+                text: "Flowing"
+                color: root.mutedColor
+                font.family: root.fontFamily
+                font.italic: true
+                font.pixelSize: Style.space(11)
+                horizontalAlignment: Text.AlignRight
+                width: Style.space(44)
+              }
+            }
+          }
+
+          Item { height: Style.space(4); width: 1 }
+
+          // Action Buttons
+          Row {
+            width: parent.width
+            spacing: Style.space(10)
+
+            Button {
+              width: parent.width - Style.space(130)
+              text: "📋 View Session Report ★"
+              accent: root.goldColor
+              bordered: true
+              onClicked: {
+                root.isFinishMetricsModalOpen = false;
+                root.saveFinalMetrics();
+                root.viewingSession = Database.loadSession(root.activeSessionId);
+                root.activeTab = "report";
+              }
+            }
+
+            Button {
+              width: Style.space(120)
+              text: "🌀 New Session"
+              accent: root.cyanColor
+              bordered: true
+              onClicked: {
+                root.isFinishMetricsModalOpen = false;
+                root.startNewSession();
+              }
             }
           }
         }
