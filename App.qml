@@ -5,6 +5,7 @@ import QtQuick.Window
 import "ProcessData.js" as ProcessData
 import "Database.js" as Database
 import "Report.js" as Report
+import "SpiralEngine.js" as SpiralEngine
 
 ApplicationWindow {
     id: appWindow
@@ -98,6 +99,7 @@ ApplicationWindow {
             answers: answers
         };
         activeSessionId = Database.saveSession(s);
+        SpiralEngine.rebuildFromSession(flatSteps, answers, 0);
         refreshHistory();
     }
 
@@ -117,12 +119,16 @@ ApplicationWindow {
         copyStatusMessage = "";
         viewingSession = null;
         activeTab = "chamber";
+        SpiralEngine.rebuildFromSession(flatSteps, answers, currentStepIndex);
     }
 
     function openSessionReport(session) {
         viewingSession = session;
         copyStatusMessage = "";
         activeTab = "report";
+        if (session && session.answers) {
+            SpiralEngine.rebuildFromSession(flatSteps, session.answers, (session.answers ? session.answers.length - 1 : 0));
+        }
     }
 
     function advanceStep() {
@@ -150,6 +156,7 @@ ApplicationWindow {
             answers: answers
         };
         activeSessionId = Database.saveSession(s);
+        SpiralEngine.rebuildFromSession(flatSteps, answers, currentStepIndex);
         refreshHistory();
 
         answerDraft = (currentStepIndex < flatSteps.length && answers[currentStepIndex]) ? answers[currentStepIndex] : "";
@@ -557,185 +564,366 @@ ApplicationWindow {
             }
 
             // -------------------------------------------------------------
-            // 1. CHAMBER TAB (The Active Guided Session)
+            // 1. CHAMBER TAB (The Active Guided Session & 3D Evolving Spiral)
             // -------------------------------------------------------------
-            ColumnLayout {
+            RowLayout {
                 anchors.fill: parent
-                anchors.margins: 40
-                spacing: 24
+                spacing: 0
                 visible: activeTab === "chamber"
 
-                // Progress Bar & Step Tracker
-                RowLayout {
+                // ---------------------------------------------------------
+                // 1A. LEFT / CENTER: THE 3D EVOLVING HELIX SPIRAL CANVAS
+                // ---------------------------------------------------------
+                Item {
                     Layout.fillWidth: true
-                    spacing: 16
+                    Layout.fillHeight: true
+                    clip: true
 
+                    Canvas {
+                        id: spiralCanvas
+                        anchors.fill: parent
+
+                        Timer {
+                            interval: 33 // ~30 FPS smooth rendering
+                            running: appWindow.activeTab === "chamber" && appWindow.visible
+                            repeat: true
+                            onTriggered: {
+                                SpiralEngine.update(spiralCanvas.width, spiralCanvas.height);
+                                spiralCanvas.requestPaint();
+                            }
+                        }
+
+                        onPaint: {
+                            var ctx = getContext("2d");
+                            SpiralEngine.render(ctx, width, height, spiralMouse.mouseX, spiralMouse.mouseY);
+                        }
+                    }
+
+                    // Interactive Drag & Zoom MouseArea for 3D Spiral
+                    MouseArea {
+                        id: spiralMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+
+                        property real lastX: 0
+                        property real lastY: 0
+
+                        onPressed: function(mouse) {
+                            lastX = mouse.x;
+                            lastY = mouse.y;
+                            SpiralEngine.isRotating = true;
+                        }
+
+                        onReleased: function(mouse) {
+                            SpiralEngine.isRotating = false;
+                        }
+
+                        onPositionChanged: function(mouse) {
+                            if (pressed) {
+                                var dx = mouse.x - lastX;
+                                var dy = mouse.y - lastY;
+                                var isShift = (mouse.modifiers & Qt.ShiftModifier) !== 0;
+                                SpiralEngine.handleDrag(dx, dy, isShift);
+                                lastX = mouse.x;
+                                lastY = mouse.y;
+                                spiralCanvas.requestPaint();
+                            }
+                        }
+
+                        onWheel: function(wheel) {
+                            SpiralEngine.handleWheel(wheel.angleDelta.y);
+                            spiralCanvas.requestPaint();
+                        }
+                    }
+
+                    // Authentic Watermark
+                    Text {
+                        anchors.top: parent.top
+                        anchors.left: parent.left
+                        anchors.margins: 20
+                        text: "ekology.co.uk · #ETERNITY"
+                        color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.45)
+                        font.pixelSize: 11
+                        font.bold: true
+                        font.letterSpacing: 1.5
+                    }
+
+                    // Rotational Hint Pill
                     Rectangle {
+                        anchors.bottom: parent.bottom
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.margins: 18
                         height: 28
-                        width: setBadge.implicitWidth + 20
+                        width: rotHintText.implicitWidth + 24
                         radius: 14
-                        color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.15)
+                        color: Qt.rgba(2, 6, 23, 0.85)
                         border.width: 1
-                        border.color: colCyan
+                        border.color: Qt.rgba(255, 255, 255, 0.12)
 
                         Text {
-                            id: setBadge
+                            id: rotHintText
                             anchors.centerIn: parent
-                            text: "SET " + currentSet + " OF 6"
-                            color: colCyan
-                            font.bold: true
-                            font.pixelSize: 12
+                            text: "🖱️ Drag to rotate 3D view • Wheel to zoom • Shift+Drag to travel time"
+                            color: colMuted
+                            font.pixelSize: 11
                         }
-                    }
-
-                    Rectangle {
-                        Layout.fillWidth: true
-                        height: 8
-                        radius: 4
-                        color: Qt.rgba(255, 255, 255, 0.1)
-
-                        Rectangle {
-                            height: parent.height
-                            radius: 4
-                            width: parent.width * Math.min(1.0, (currentStepIndex + 1) / Math.max(1, flatSteps.length))
-                            color: colGold
-                        }
-                    }
-
-                    Text {
-                        text: "Step " + (currentStepIndex + 1) + " of " + flatSteps.length
-                        color: colMuted
-                        font.pixelSize: 13
                     }
                 }
 
-                // Main Inquiry Card
+                // ---------------------------------------------------------
+                // 1B. RIGHT: AUTHENTIC CONTROL PANEL & GUIDED INQUIRY
+                // ---------------------------------------------------------
                 Rectangle {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 180
-                    radius: 16
-                    color: colCardBg
-                    border.width: 2
-                    border.color: stepTypeColor(currentStepType)
+                    Layout.preferredWidth: 430
+                    Layout.fillHeight: true
+                    color: Qt.rgba(6, 9, 25, 0.95)
+                    border.width: 1
+                    border.color: colBorder
 
-                    ColumnLayout {
+                    Flickable {
                         anchors.fill: parent
-                        anchors.margins: 24
-                        spacing: 12
+                        anchors.margins: 20
+                        contentHeight: controlPanelCol.implicitHeight + 20
+                        clip: true
 
-                        RowLayout {
-                            spacing: 10
-                            Rectangle {
-                                height: 22
-                                width: badgeLabel.implicitWidth + 16
-                                radius: 11
-                                color: Qt.rgba(stepTypeColor(currentStepType).r, stepTypeColor(currentStepType).g, stepTypeColor(currentStepType).b, 0.2)
-                                border.width: 1
-                                border.color: stepTypeColor(currentStepType)
+                        ColumnLayout {
+                            id: controlPanelCol
+                            width: parent.width
+                            spacing: 12
+
+                            // Subtitle & Header
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 2
 
                                 Text {
-                                    id: badgeLabel
-                                    anchors.centerIn: parent
-                                    text: stepTypeBadge(currentStepType)
-                                    color: stepTypeColor(currentStepType)
+                                    text: "EMERGENT KNOWLEDGE | PROCESS #4"
+                                    color: colCyan
+                                    font.pixelSize: 10
                                     font.bold: true
+                                    font.letterSpacing: 1.2
+                                }
+
+                                Text {
+                                    text: "THE ETERNAL MOMENT"
+                                    color: colForeground
+                                    font.pixelSize: 18
+                                    font.bold: true
+                                    font.family: "Outfit, Inter, sans-serif"
+                                }
+                            }
+
+                            // Authentic Guidance Box (from eternity_app.php)
+                            Rectangle {
+                                Layout.fillWidth: true
+                                radius: 10
+                                color: Qt.rgba(255, 255, 255, 0.03)
+                                border.width: 1
+                                border.color: Qt.rgba(255, 255, 255, 0.08)
+
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 12
+                                    spacing: 4
+
+                                    Text {
+                                        text: "‘Where’ can signify any, some or all of these:"
+                                        color: colForeground
+                                        font.bold: true
+                                        font.pixelSize: 11
+                                    }
+                                    Text { text: "• A situation, state or condition"; color: colMuted; font.pixelSize: 11 }
+                                    Text { text: "• A place or viewpoint"; color: colMuted; font.pixelSize: 11 }
+                                    Text { text: "• An identity or attitude"; color: colMuted; font.pixelSize: 11 }
+                                    Text { text: "• A mood or emotion"; color: colMuted; font.pixelSize: 11 }
+                                    Text {
+                                        text: "in that moment of time."
+                                        color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.8)
+                                        font.pixelSize: 10
+                                        font.italic: true
+                                    }
+                                }
+                            }
+
+                            // Show Outer Helix Toggle Checkbox
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 8
+
+                                CheckBox {
+                                    id: helixToggle
+                                    checked: true
+                                    onCheckedChanged: {
+                                        SpiralEngine.toggleHelix(checked);
+                                        spiralCanvas.requestPaint();
+                                    }
+                                }
+                                Text {
+                                    text: "Show Outer Helix Ribbon"
+                                    color: colMuted
+                                    font.pixelSize: 11
+                                }
+                                Item { Layout.fillWidth: true }
+                            }
+
+                            // Step & Set Tracker
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 10
+
+                                Rectangle {
+                                    height: 24
+                                    width: setBadge.implicitWidth + 16
+                                    radius: 12
+                                    color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.15)
+                                    border.width: 1
+                                    border.color: colCyan
+
+                                    Text {
+                                        id: setBadge
+                                        anchors.centerIn: parent
+                                        text: "SET " + currentSet + " OF 6"
+                                        color: colCyan
+                                        font.bold: true
+                                        font.pixelSize: 11
+                                    }
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    height: 6
+                                    radius: 3
+                                    color: Qt.rgba(255, 255, 255, 0.1)
+
+                                    Rectangle {
+                                        height: parent.height
+                                        radius: 3
+                                        width: parent.width * Math.min(1.0, (currentStepIndex + 1) / Math.max(1, flatSteps.length))
+                                        color: colGold
+                                    }
+                                }
+
+                                Text {
+                                    text: "Step " + (currentStepIndex + 1) + "/" + flatSteps.length
+                                    color: colMuted
                                     font.pixelSize: 11
                                 }
                             }
 
-                            Text {
-                                text: currentStep ? (ProcessData.questionLibrary[currentStep.key] ? ProcessData.questionLibrary[currentStep.key].label : "") : ""
-                                color: colMuted
-                                font.pixelSize: 12
-                            }
-                        }
+                            // Inquiry Card
+                            Rectangle {
+                                Layout.fillWidth: true
+                                radius: 12
+                                color: colCardBg
+                                border.width: 1.5
+                                border.color: stepTypeColor(currentStepType)
 
-                        Text {
-                            Layout.fillWidth: true
-                            text: currentQuestionText
-                            color: colForeground
-                            font.pixelSize: 26
-                            font.bold: true
-                            font.family: "Outfit, Inter, sans-serif"
-                            wrapMode: Text.WordWrap
-                        }
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 14
+                                    spacing: 8
 
-                        Text {
-                            Layout.fillWidth: true
-                            visible: currentStepType === "cta"
-                            text: "💡 Observe the space, tension, or resonance between these two coordinates."
-                            color: colMuted
-                            font.pixelSize: 12
-                        }
-                    }
-                }
+                                    RowLayout {
+                                        spacing: 8
+                                        Rectangle {
+                                            height: 20
+                                            width: badgeLabel.implicitWidth + 14
+                                            radius: 10
+                                            color: Qt.rgba(stepTypeColor(currentStepType).r, stepTypeColor(currentStepType).g, stepTypeColor(currentStepType).b, 0.2)
+                                            border.width: 1
+                                            border.color: stepTypeColor(currentStepType)
 
-                // Reflection Input Card
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    radius: 16
-                    color: Qt.rgba(colCardBg.r, colCardBg.g, colCardBg.b, 0.7)
-                    border.width: 1
-                    border.color: colBorder
+                                            Text {
+                                                id: badgeLabel
+                                                anchors.centerIn: parent
+                                                text: stepTypeBadge(currentStepType)
+                                                color: stepTypeColor(currentStepType)
+                                                font.bold: true
+                                                font.pixelSize: 10
+                                            }
+                                        }
 
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 24
-                        spacing: 16
+                                        Text {
+                                            text: currentStep ? (ProcessData.questionLibrary[currentStep.key] ? ProcessData.questionLibrary[currentStep.key].label : "") : ""
+                                            color: colMuted
+                                            font.pixelSize: 11
+                                        }
+                                    }
 
-                        ScrollView {
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
+                                    Text {
+                                        Layout.fillWidth: true
+                                        text: currentQuestionText
+                                        color: colForeground
+                                        font.pixelSize: 17
+                                        font.bold: true
+                                        font.family: "Outfit, Inter, sans-serif"
+                                        wrapMode: Text.WordWrap
+                                    }
 
-                            TextArea {
-                                id: answerInputBox
-                                width: parent.width
-                                text: answerDraft
-                                placeholderText: "Sustain your attention. Describe where you are, what you see, feel, or realize..."
-                                placeholderTextColor: Qt.rgba(colMuted.r, colMuted.g, colMuted.b, 0.5)
-                                color: colForeground
-                                font.pixelSize: 16
-                                font.family: "Inter, sans-serif"
-                                wrapMode: TextArea.Wrap
-                                background: null
-                                onTextChanged: answerDraft = text
-
-                                Keys.onReturnPressed: function(event) {
-                                    if (event.modifiers & Qt.ControlModifier || event.modifiers & Qt.ShiftModifier) {
-                                        advanceStep();
-                                        event.accepted = true;
+                                    // Authentic Precursor / Example Text
+                                    Text {
+                                        Layout.fillWidth: true
+                                        text: ProcessData.getStepExample(currentStepType)
+                                        color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.85)
+                                        font.pixelSize: 11
+                                        font.italic: true
+                                        wrapMode: Text.WordWrap
+                                        visible: text !== ""
                                     }
                                 }
                             }
-                        }
 
-                        Rectangle {
-                            Layout.fillWidth: true
-                            height: 1
-                            color: colBorder
-                        }
+                            // Answer Input Card
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 125
+                                radius: 12
+                                color: Qt.rgba(colCardBg.r, colCardBg.g, colCardBg.b, 0.7)
+                                border.width: 1
+                                border.color: colBorder
 
-                        RowLayout {
-                            Layout.fillWidth: true
+                                ScrollView {
+                                    anchors.fill: parent
+                                    anchors.margins: 10
 
-                            Text {
-                                text: "Tip: Press Ctrl+Enter or Shift+Enter to submit and advance"
-                                color: colMuted
-                                font.pixelSize: 12
+                                    TextArea {
+                                        id: answerInputBox
+                                        width: parent.width
+                                        text: answerDraft
+                                        placeholderText: ProcessData.getPlaceholder(currentStepType)
+                                        placeholderTextColor: Qt.rgba(colMuted.r, colMuted.g, colMuted.b, 0.5)
+                                        color: colForeground
+                                        font.pixelSize: 14
+                                        font.family: "Inter, sans-serif"
+                                        wrapMode: TextArea.Wrap
+                                        background: null
+                                        onTextChanged: answerDraft = text
+
+                                        Keys.onReturnPressed: function(event) {
+                                            if (event.modifiers & Qt.ShiftModifier) {
+                                                // Shift+Enter creates a newline
+                                                event.accepted = false;
+                                            } else {
+                                                // Enter submits
+                                                advanceStep();
+                                                event.accepted = true;
+                                            }
+                                        }
+                                    }
+                                }
                             }
 
-                            Item { Layout.fillWidth: true }
-
+                            // Dynamic Action Button
                             Rectangle {
-                                height: 42
-                                width: 200
+                                Layout.fillWidth: true
+                                height: 40
                                 radius: 8
                                 color: colGold
 
                                 Text {
                                     anchors.centerIn: parent
-                                    text: (currentStepIndex + 1 >= flatSteps.length ? "Harvest Emergence ★" : "Reflect & Advance →")
+                                    text: ProcessData.getButtonText(currentStepIndex, currentStepType)
                                     color: "#020617"
                                     font.bold: true
                                     font.pixelSize: 13
@@ -747,47 +935,86 @@ ApplicationWindow {
                                     onClicked: advanceStep()
                                 }
                             }
-                        }
-                    }
-                }
 
-                // Pre-session calibration slider row (visible on step 0)
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 70
-                    radius: 12
-                    visible: currentStepIndex === 0
-                    color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.08)
-                    border.width: 1
-                    border.color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.25)
+                            // Progress Track (Now indicator + Step Subtitle)
+                            Rectangle {
+                                Layout.fillWidth: true
+                                height: 34
+                                radius: 8
+                                color: Qt.rgba(255, 255, 255, 0.03)
 
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.margins: 16
-                        spacing: 24
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 8
+                                    spacing: 8
 
-                        Text {
-                            text: "Calibration:"
-                            color: colCyan
-                            font.bold: true
-                            font.pixelSize: 12
-                        }
+                                    Rectangle {
+                                        width: 8
+                                        height: 8
+                                        radius: 4
+                                        color: colGold
+                                    }
 
-                        RowLayout {
-                            spacing: 8
-                            Text { text: "Clarity (" + preClarity + "/10):"; color: colForeground; font.pixelSize: 12 }
-                            Slider {
-                                from: 1; to: 10; stepSize: 1; value: preClarity
-                                onValueChanged: preClarity = Math.round(value)
+                                    Text {
+                                        text: "Now " + currentSet
+                                        color: colGold
+                                        font.bold: true
+                                        font.pixelSize: 11
+                                    }
+
+                                    Text {
+                                        text: "• " + ProcessData.getProgressSubtitle(currentStepType)
+                                        color: colMuted
+                                        font.pixelSize: 11
+                                    }
+
+                                    Item { Layout.fillWidth: true }
+                                }
                             }
-                        }
 
-                        RowLayout {
-                            spacing: 8
-                            Text { text: "Present Focus (" + preFocus + "/10):"; color: colForeground; font.pixelSize: 12 }
-                            Slider {
-                                from: 1; to: 10; stepSize: 1; value: preFocus
-                                onValueChanged: preFocus = Math.round(value)
+                            // Pre-session calibration slider row (visible on step 0)
+                            Rectangle {
+                                Layout.fillWidth: true
+                                radius: 10
+                                visible: currentStepIndex === 0
+                                color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.08)
+                                border.width: 1
+                                border.color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.25)
+
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 12
+                                    spacing: 8
+
+                                    Text {
+                                        text: "Calibration Before You Begin:"
+                                        color: colCyan
+                                        font.bold: true
+                                        font.pixelSize: 11
+                                    }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 8
+                                        Text { text: "Clarity (" + preClarity + "/10):"; color: colForeground; font.pixelSize: 11; Layout.preferredWidth: 95 }
+                                        Slider {
+                                            Layout.fillWidth: true
+                                            from: 1; to: 10; stepSize: 1; value: preClarity
+                                            onValueChanged: preClarity = Math.round(value)
+                                        }
+                                    }
+
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 8
+                                        Text { text: "Focus (" + preFocus + "/10):"; color: colForeground; font.pixelSize: 11; Layout.preferredWidth: 95 }
+                                        Slider {
+                                            Layout.fillWidth: true
+                                            from: 1; to: 10; stepSize: 1; value: preFocus
+                                            onValueChanged: preFocus = Math.round(value)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -934,6 +1161,40 @@ ApplicationWindow {
                                                     }
                                                 }
                                             }
+
+                                            Rectangle {
+                                                height: 36
+                                                width: 86
+                                                radius: 6
+                                                color: Qt.rgba(colPast.r, colPast.g, colPast.b, 0.2)
+                                                border.width: 1
+                                                border.color: colPast
+
+                                                Text {
+                                                    anchors.centerIn: parent
+                                                    text: "Spiral 3D"
+                                                    color: colPast
+                                                    font.bold: true
+                                                    font.pixelSize: 12
+                                                }
+
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    cursorShape: Qt.PointingHandCursor
+                                                    onClicked: {
+                                                        var full = Database.loadSession(modelData.id);
+                                                        if (full) {
+                                                            activeSessionId = full.id;
+                                                            sessionUuid = full.uuid;
+                                                            currentStepIndex = full.current_step || 0;
+                                                            answers = full.answers || [];
+                                                            activeTab = "chamber";
+                                                            var targetLimit = (full.status === "completed" || !full.answers) ? (full.answers ? full.answers.length - 1 : 0) : currentStepIndex;
+                                                            SpiralEngine.rebuildFromSession(flatSteps, answers, targetLimit);
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         }
 
                                         Rectangle {
@@ -990,6 +1251,31 @@ ApplicationWindow {
 
                     RowLayout {
                         spacing: 12
+
+                        Rectangle {
+                            height: 38
+                            width: 150
+                            radius: 6
+                            color: Qt.rgba(colPast.r, colPast.g, colPast.b, 0.15)
+                            border.width: 1.5
+                            border.color: colPast
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "🌀 Explore 3D Spiral"
+                                color: colPast
+                                font.bold: true
+                                font.pixelSize: 12
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    activeTab = "chamber";
+                                }
+                            }
+                        }
 
                         Rectangle {
                             height: 38

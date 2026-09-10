@@ -162,3 +162,53 @@ function formatQuestionText(step, answers, flatSteps) {
 
     return text;
 }
+
+function getPlaceholder(stepKey) {
+    if (stepKey === "awehyb" || stepKey === "awemyb") {
+        return "who, what, where and when...";
+    } else if (stepKey === "cta") {
+        return "Note similarities and differences...";
+    } else if (stepKey === "review") {
+        return "";
+    } else {
+        return "write your answer...";
+    }
+}
+
+function getButtonText(stepIndex, stepKey) {
+    if (stepIndex === 0) return "Launch";
+    if (stepKey === "cta") return "Compare";
+    if (stepKey === "now") return "Acknowledge Now";
+    if (stepKey === "review") return "Review & Continue";
+    return "Continue";
+}
+
+function getProgressSubtitle(stepKey) {
+    if (stepKey === "p4_starter" || stepKey === "now") return "Defining the present moment";
+    if (stepKey === "awehyb") return "Recalling the past";
+    if (stepKey === "awemyb") return "Possibilities of the future";
+    if (stepKey === "cta") return "Synthesising connections";
+    if (stepKey === "review") return "Reviewing...";
+    if (stepKey === "awitdbwykatsawykn") return "Synthesising emergence";
+    return "Exploring awareness";
+}
+
+function getStepExample(stepKey) {
+    if (stepKey === "p4_starter" || stepKey === "now") {
+        return "e.g. In life, where are you now? (a situation, state or condition, place, identity, or mood)";
+    }
+    if (stepKey === "awehyb") {
+        return "e.g. In the past / earlier in life: who was there, what happened, where were you, and when?";
+    }
+    if (stepKey === "awemyb") {
+        return "e.g. In the future / later in life: what possibilities, directions, or choices might open up?";
+    }
+    if (stepKey === "cta") {
+        return "e.g. Notice what is similar and what is different between that time and where you are now.";
+    }
+    if (stepKey === "awitdbwykatsawykn") {
+        return "e.g. Notice what has shifted or emerged across the journey from your first 'Now' to where you stand now.";
+    }
+    return "";
+}
+
