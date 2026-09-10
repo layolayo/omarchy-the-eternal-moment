@@ -1186,7 +1186,7 @@ ApplicationWindow {
                                         Text {
                                             id: setBadge
                                             anchors.centerIn: parent
-                                            text: currentStepIndex >= flatSteps.length ? "INTEGRATION" : ("SET " + currentSet + " OF 6")
+                                            text: currentStepIndex >= flatSteps.length ? "INTEGRATION" : (currentStep && currentStep.key === "awitdbwykatsawykn" ? "EMERGENT INSIGHT" : (currentStep && currentStep.key === "cta" && currentStep.compareTargetIndex === 0 ? "1–7 COMPARISON" : (currentStep && currentStep.stepTitle === "Now 7" ? "NOW 7" : ("SET " + currentSet + " OF 6"))))
                                             color: colCyan
                                             font.bold: true
                                             font.pixelSize: 10
@@ -1280,12 +1280,63 @@ ApplicationWindow {
                                         // Authentic Precursor / Example Text
                                         Text {
                                             width: parent.width
-                                            text: ProcessData.getStepExample(currentStepType)
+                                            text: ProcessData.getStepExample(currentStepType, currentStep)
                                             color: colCyan
                                             font.pixelSize: 11
                                             font.italic: true
                                             wrapMode: Text.WordWrap
                                             visible: text !== ""
+                                        }
+
+                                        // 1-7 Temporal Comparison Reference for Emergent Insight
+                                        Rectangle {
+                                            width: parent.width
+                                            implicitHeight: insightRefCol.implicitHeight + 16
+                                            radius: 8
+                                            color: Qt.rgba(colGold.r, colGold.g, colGold.b, 0.08)
+                                            border.width: 1
+                                            border.color: Qt.rgba(colGold.r, colGold.g, colGold.b, 0.3)
+                                            visible: currentStep && currentStep.key === "awitdbwykatsawykn"
+
+                                            Column {
+                                                id: insightRefCol
+                                                width: parent.width - 16
+                                                anchors.centerIn: parent
+                                                spacing: 6
+
+                                                Text {
+                                                    text: "⚡ Grounded on 1–7 Temporal Comparison:"
+                                                    color: colGold
+                                                    font.bold: true
+                                                    font.pixelSize: 11
+                                                }
+
+                                                Text {
+                                                    width: parent.width
+                                                    text: "• Start (Now 1): \"" + ((answers && answers[0]) ? answers[0] : "...") + "\""
+                                                    color: colForeground
+                                                    font.pixelSize: 11
+                                                    wrapMode: Text.WordWrap
+                                                }
+
+                                                Text {
+                                                    width: parent.width
+                                                    text: "• Now (Now 7): \"" + ((answers && answers[78]) ? answers[78] : "...") + "\""
+                                                    color: colForeground
+                                                    font.pixelSize: 11
+                                                    wrapMode: Text.WordWrap
+                                                }
+
+                                                Text {
+                                                    width: parent.width
+                                                    text: "• Comparison (Step 80): \"" + ((answers && answers[79]) ? answers[79] : "...") + "\""
+                                                    color: "#c4b5fd"
+                                                    font.pixelSize: 11
+                                                    font.italic: true
+                                                    wrapMode: Text.WordWrap
+                                                    visible: (answers && answers[79]) ? true : false
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -1394,7 +1445,7 @@ ApplicationWindow {
                                     }
 
                                     Text {
-                                        text: "• " + (currentStep ? ("Set " + currentStep.set + " • ") : "") + ProcessData.getProgressSubtitle(currentStepType)
+                                        text: "• " + (currentStep ? ((currentStep.set <= 6 && currentStep.key !== "awitdbwykatsawykn" && currentStep.compareTargetIndex !== 0 ? ("Set " + currentStep.set + " • ") : "") + ProcessData.getProgressSubtitle(currentStepType, currentStep)) : "")
                                         color: colMuted
                                         font.pixelSize: 11
                                         anchors.verticalCenter: parent.verticalCenter
@@ -1609,7 +1660,7 @@ ApplicationWindow {
                                             Text {
                                                 width: parent.width
                                                 text: {
-                                                    var lastAns = (answers && answers[flatSteps.length - 1]) ? answers[flatSteps.length - 1] : ((answers && answers[79]) ? answers[79] : "");
+                                                    var lastAns = (answers && answers[flatSteps.length - 1]) ? answers[flatSteps.length - 1] : ((answers && (answers[80] || answers[79])) ? (answers[80] || answers[79]) : "");
                                                     return lastAns ? ("\"" + lastAns + "\"") : "Breakthrough insight recorded.";
                                                 }
                                                 color: colForeground
@@ -2415,7 +2466,7 @@ ApplicationWindow {
                             }
                             Text {
                                 Layout.fillWidth: true
-                                text: "At Step 81, the facilitator poses the definitive question:\n\n'And, what is the difference between what you knew at the start and what you know now?'\n\nThis question integrates the entire 6-set spiral into a singular, grounded realization. It highlights the leap between your initial perspective and your evolved consciousness."
+                                text: "Following the completion of Set 6, the journey culminates in three transformative integration steps:\n\n• Step 79 (Now 7): 'And, where are you now?' — The 7th and final present anchor, capturing where your awareness has arrived.\n• Step 80 (Compare 37): 'And, compare [Now 1] to [Now 7]' — Directly bridging where you stood at the very start to where you stand now.\n• Step 81 (Emergent Insight): 'And, what is the difference between what you knew at the start and what you know now?' — Synthesising the entire spiral into an indelible realization based on the 1–7 comparison.\n\nFinally, the session concludes with Finishing the Metrics, calibrating your post-session Clarity and Focus shifts."
                                 color: colForeground
                                 font.pixelSize: 13
                                 lineHeight: 1.4

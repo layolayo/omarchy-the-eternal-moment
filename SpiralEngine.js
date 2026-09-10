@@ -234,16 +234,18 @@ function rebuildFromSession(flatSteps, answers, currentStepIndex, preserveOffset
                 };
             }
         } else if (step.key === "cta") {
-            var fromId = step.id - 1;
-            var nowStep = null;
-            for (var k = i - 1; k >= 0; k--) {
-                if (flatSteps[k].key === "now" || flatSteps[k].key === "p4_starter") {
-                    nowStep = flatSteps[k];
-                    break;
+            var fromId = (step.compareTargetIndex !== undefined) ? step.compareTargetIndex : (step.id - 1);
+            var nowStepId = (step.nowAnchorIndex !== undefined) ? step.nowAnchorIndex : null;
+            if (nowStepId === null) {
+                for (var k = i - 1; k >= 0; k--) {
+                    if (flatSteps[k].key === "now" || flatSteps[k].key === "p4_starter") {
+                        nowStepId = flatSteps[k].id;
+                        break;
+                    }
                 }
             }
-            if (nowStep) {
-                addConnection(fromId, nowStep.id, ansText, step.id, step.stepTitle, step.stepNumber);
+            if (fromId !== null && nowStepId !== null) {
+                addConnection(fromId, nowStepId, ansText, step.id, step.stepTitle, step.stepNumber);
             }
         }
 
@@ -260,7 +262,7 @@ function rebuildFromSession(flatSteps, answers, currentStepIndex, preserveOffset
         var targetLevel = 1;
         for (var m = currentStepIndex; m >= 0; m--) {
             if (flatSteps[m].key === "now" || flatSteps[m].key === "p4_starter") {
-                targetLevel = flatSteps[m].set || 1;
+                targetLevel = flatSteps[m].stepNumber || flatSteps[m].set || 1;
                 break;
             }
         }

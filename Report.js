@@ -41,16 +41,24 @@ function generateMarkdownReport(session, flatSteps, questionLibrary) {
         var qDef = questionLibrary[step.key] || { label: step.key, text: step.key };
         
         if (step.key === "now" || step.key === "p4_starter") {
-            lines.push("> **" + qDef.label + "**: *" + ans + "*");
+            lines.push("> **" + (step.stepTitle || qDef.label) + "**: *" + ans + "*");
         } else if (step.key === "awehyb") {
             lines.push("- **Past**: " + ans);
         } else if (step.key === "awemyb") {
             lines.push("- **Future**: " + ans);
         } else if (step.key === "cta") {
-            lines.push("  - *Comparison*: " + ans);
+            if (step.compareTargetIndex === 0) {
+                lines.push("");
+                lines.push("### 3. The 1–7 Temporal Comparison (Now 1 vs Now 7)");
+                lines.push("**And, compare what you knew at the start to where you are now:**");
+                lines.push("> *" + ans + "*");
+                lines.push("");
+            } else {
+                lines.push("  - *Comparison*: " + ans);
+            }
         } else if (step.key === "awitdbwykatsawykn") {
             lines.push("");
-            lines.push("### 3. The Emergent Difference");
+            lines.push("### 4. The Emergent Difference");
             lines.push("**And, what is the difference between what you knew at the start and what you know now?**");
             lines.push("");
             lines.push("> ### *" + ans + "*");
@@ -58,7 +66,7 @@ function generateMarkdownReport(session, flatSteps, questionLibrary) {
         }
     }
 
-    lines.push("### 4. Integration & Metrics Shift");
+    lines.push("### 5. Integration & Metrics Shift");
     var dClarity = (session.post_clarity || 5) - (session.pre_clarity || 5);
     var dFocus = (session.post_focus || 5) - (session.pre_focus || 5);
     var fmtDiff = function(n) { return (n >= 0 ? "+" + n : "" + n); };
@@ -84,7 +92,7 @@ function generateMarkdownReport(session, flatSteps, questionLibrary) {
 
 function generateTweetText(session) {
     if (!session) return "";
-    var insight = session.final_insight || (session.answers && (session.answers[79] || session.answers[80]) ? (session.answers[79] || session.answers[80]) : "");
+    var insight = session.final_insight || (session.answers && (session.answers[80] || session.answers[79]) ? (session.answers[80] || session.answers[79]) : "");
     if (insight.length > 180) {
         insight = insight.substring(0, 177) + "...";
     }

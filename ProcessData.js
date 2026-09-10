@@ -129,25 +129,40 @@ function buildFlatSteps() {
         }
     }
 
-    // Step 79: Review bridge
+    // Step 79 (index 78): Now 7 - Final Now recognition after 6 complete sets
+    var now7Idx = flat.length;
+    nowCount++; // nowCount = 7
     flat.push({
-        id: flat.length,
-        key: "review",
+        id: now7Idx,
+        key: "now",
         set: 6,
-        stepNumber: 1,
-        stepTitle: "Session Review",
-        nowAnchorIndex: currentNowAnchor
+        stepNumber: nowCount,
+        stepTitle: "Now " + nowCount,
+        nowAnchorIndex: now7Idx
     });
 
-    // Step 80: Final Insight Question
+    // Step 80 (index 79): 1-7 Temporal Comparison (Compare Now 1 to Now 7)
+    var cta1to7Idx = flat.length;
+    compareCount++; // compareCount = 37
+    flat.push({
+        id: cta1to7Idx,
+        key: "cta",
+        set: 6,
+        stepNumber: compareCount,
+        stepTitle: "Compare " + compareCount,
+        compareTargetIndex: 0, // Now 1 (start)
+        nowAnchorIndex: now7Idx // Now 7 (now)
+    });
+
+    // Step 81 (index 80): Final Emergent Insight Question
     flat.push({
         id: flat.length,
         key: "awitdbwykatsawykn",
         set: 6,
         stepNumber: 1,
         stepTitle: "Emergent Insight",
-        nowAnchorIndex: 0, // Compares start to end
-        compareTargetIndex: currentNowAnchor
+        compareTargetIndex: 0, // Now 1 (start)
+        nowAnchorIndex: now7Idx // Now 7 (now)
     });
 
     return flat;
@@ -178,8 +193,11 @@ function formatQuestionText(step, answers, flatSteps) {
 
     // Handle [A] and [B]
     if (step.key === "cta") {
-        var prevAns = answers[step.id - 1] || "that";
-        var nowAns = answers[step.nowAnchorIndex] || "where you are now";
+        var targetAIdx = (step.compareTargetIndex !== undefined) ? step.compareTargetIndex : (step.id - 1);
+        var targetBIdx = (step.nowAnchorIndex !== undefined) ? step.nowAnchorIndex : step.id;
+
+        var prevAns = answers[targetAIdx] || (step.compareTargetIndex === 0 ? "where you started" : "that");
+        var nowAns = answers[targetBIdx] || "where you are now";
 
         var cleanA = truncateWords(prevAns, 6);
         var cleanB = truncateWords(nowAns, 6);
@@ -205,14 +223,15 @@ function getPlaceholder(stepKey) {
 
 function getButtonText(stepIndex, stepKey) {
     if (stepIndex === 0) return "Launch";
-    if (stepKey === "awitdbwykatsawykn" || stepIndex >= 79) return "Finish with Metrics ★";
+    if (stepKey === "awitdbwykatsawykn" || stepIndex >= 80) return "Finish with Metrics ★";
     if (stepKey === "cta") return "Compare";
     if (stepKey === "now") return "Acknowledge Now";
     if (stepKey === "review") return "Review & Continue";
     return "Continue";
 }
 
-function getProgressSubtitle(stepKey) {
+function getProgressSubtitle(stepKey, step) {
+    if (step && step.key === "cta" && step.compareTargetIndex === 0) return "1-7 Temporal Comparison";
     if (stepKey === "p4_starter" || stepKey === "now") return "Defining the present moment";
     if (stepKey === "awehyb") return "Recalling the past";
     if (stepKey === "awemyb") return "Possibilities of the future";
@@ -222,7 +241,10 @@ function getProgressSubtitle(stepKey) {
     return "Exploring awareness";
 }
 
-function getStepExample(stepKey) {
+function getStepExample(stepKey, step) {
+    if (step && step.key === "cta" && step.compareTargetIndex === 0) {
+        return "e.g. Compare where you were at the start (Now 1) to where you are now (Now 7). What shifts, echoes, or expansions stand out?";
+    }
     if (stepKey === "p4_starter" || stepKey === "now") {
         return "e.g. In life, where are you now? (a situation, state or condition, place, identity, or mood)";
     }
@@ -236,7 +258,7 @@ function getStepExample(stepKey) {
         return "e.g. Notice what is similar and what is different between that time and where you are now.";
     }
     if (stepKey === "awitdbwykatsawykn") {
-        return "e.g. Notice what has shifted or emerged across the journey from your first 'Now' to where you stand now.";
+        return "e.g. Grounded on your 1–7 comparison, notice what has emerged across your entire journey from the first Now to where you stand now.";
     }
     return "";
 }

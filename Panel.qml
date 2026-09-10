@@ -429,7 +429,7 @@ Panel {
               anchors.centerIn: parent
 
               Text {
-                text: root.currentStepIndex >= root.flatSteps.length ? "Integration" : ("Set " + root.currentSet + " / 6")
+                text: root.currentStepIndex >= root.flatSteps.length ? "Integration" : (root.currentStep && root.currentStep.key === "awitdbwykatsawykn" ? "Emergent Insight" : (root.currentStep && root.currentStep.key === "cta" && root.currentStep.compareTargetIndex === 0 ? "1–7 Comparison" : (root.currentStep && root.currentStep.stepTitle === "Now 7" ? "Now 7" : ("Set " + root.currentSet + " / 6"))))
                 color: root.cyanColor
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.caption
@@ -532,11 +532,66 @@ Panel {
                 Text {
                   id: ctxText
                   width: parent.width
-                  text: "💡 Notice the subtle resonance, similarities, or contrasts between these two internal reference points."
+                  text: (root.currentStep && root.currentStep.compareTargetIndex === 0) ? "💡 Compare where you stood at the very beginning (Now 1) with where you stand now (Now 7)." : "💡 Notice the subtle resonance, similarities, or contrasts between these two internal reference points."
                   color: root.mutedColor
                   font.family: root.fontFamily
                   font.pixelSize: Style.font.caption
                   wrapMode: Text.WordWrap
+                }
+              }
+
+              // 1-7 Temporal Comparison Reference for Emergent Insight
+              Rectangle {
+                width: parent.width
+                implicitHeight: insightRefCol.implicitHeight + Style.space(16)
+                radius: Style.cornerRadius - 2
+                color: Qt.rgba(root.goldColor.r, root.goldColor.g, root.goldColor.b, 0.08)
+                border.width: 1
+                border.color: Qt.rgba(root.goldColor.r, root.goldColor.g, root.goldColor.b, 0.3)
+                visible: root.currentStep && root.currentStep.key === "awitdbwykatsawykn"
+
+                Column {
+                  id: insightRefCol
+                  width: parent.width - Style.space(16)
+                  anchors.centerIn: parent
+                  spacing: Style.space(4)
+
+                  Text {
+                    text: "⚡ Grounded on 1–7 Temporal Comparison:"
+                    color: root.goldColor
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption - 1
+                    font.bold: true
+                  }
+
+                  Text {
+                    width: parent.width
+                    text: "• Start (Now 1): \"" + ((root.answers && root.answers[0]) ? root.answers[0] : "...") + "\""
+                    color: root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption - 1
+                    wrapMode: Text.WordWrap
+                  }
+
+                  Text {
+                    width: parent.width
+                    text: "• Now (Now 7): \"" + ((root.answers && root.answers[78]) ? root.answers[78] : "...") + "\""
+                    color: root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption - 1
+                    wrapMode: Text.WordWrap
+                  }
+
+                  Text {
+                    width: parent.width
+                    text: "• Comparison (Step 80): \"" + ((root.answers && root.answers[79]) ? root.answers[79] : "...") + "\""
+                    color: "#c4b5fd"
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.caption - 1
+                    font.italic: true
+                    wrapMode: Text.WordWrap
+                    visible: (root.answers && root.answers[79]) ? true : false
+                  }
                 }
               }
             }
@@ -830,7 +885,7 @@ Panel {
                   Text {
                     width: parent.width
                     text: {
-                      var lastAns = (root.answers && root.answers[root.flatSteps.length - 1]) ? root.answers[root.flatSteps.length - 1] : ((root.answers && root.answers[79]) ? root.answers[79] : "");
+                      var lastAns = (root.answers && root.answers[root.flatSteps.length - 1]) ? root.answers[root.flatSteps.length - 1] : ((root.answers && (root.answers[80] || root.answers[79])) ? (root.answers[80] || root.answers[79]) : "");
                       return lastAns ? ("\"" + lastAns + "\"") : "Breakthrough insight recorded.";
                     }
                     color: root.foreground
