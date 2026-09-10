@@ -1208,37 +1208,37 @@ ApplicationWindow {
                                                     }
                                                 }
                                             }
+                                        }
 
-                                            Rectangle {
-                                                height: 36
-                                                width: 86
-                                                radius: 6
-                                                color: Qt.rgba(colPast.r, colPast.g, colPast.b, 0.2)
-                                                border.width: 1
-                                                border.color: colPast
+                                        Rectangle {
+                                            height: 36
+                                            width: 86
+                                            radius: 6
+                                            color: Qt.rgba(colPast.r, colPast.g, colPast.b, 0.2)
+                                            border.width: 1
+                                            border.color: colPast
 
-                                                Text {
-                                                    anchors.centerIn: parent
-                                                    text: "Spiral 3D"
-                                                    color: colPast
-                                                    font.bold: true
-                                                    font.pixelSize: 12
-                                                }
+                                            Text {
+                                                anchors.centerIn: parent
+                                                text: "Spiral 3D"
+                                                color: colPast
+                                                font.bold: true
+                                                font.pixelSize: 12
+                                            }
 
-                                                MouseArea {
-                                                    anchors.fill: parent
-                                                    cursorShape: Qt.PointingHandCursor
-                                                    onClicked: {
-                                                        var full = Database.loadSession(modelData.id);
-                                                        if (full) {
-                                                            activeSessionId = full.id;
-                                                            sessionUuid = full.uuid;
-                                                            currentStepIndex = full.current_step || 0;
-                                                            answers = full.answers || [];
-                                                            activeTab = "chamber";
-                                                            var targetLimit = (full.status === "completed" || !full.answers) ? (full.answers ? full.answers.length - 1 : 0) : currentStepIndex;
-                                                            SpiralEngine.rebuildFromSession(flatSteps, answers, targetLimit);
-                                                        }
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    var full = Database.loadSession(modelData.id);
+                                                    if (full) {
+                                                        activeSessionId = full.id;
+                                                        sessionUuid = full.uuid;
+                                                        currentStepIndex = full.current_step || 0;
+                                                        answers = full.answers || [];
+                                                        activeTab = "chamber";
+                                                        var targetLimit = (full.status === "completed" || !full.answers) ? (full.answers ? full.answers.length - 1 : 0) : currentStepIndex;
+                                                        SpiralEngine.rebuildFromSession(flatSteps, answers, targetLimit);
                                                     }
                                                 }
                                             }
