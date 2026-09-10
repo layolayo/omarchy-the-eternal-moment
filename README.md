@@ -45,20 +45,42 @@ Process #4 is not a quick status indicator—it is an expansive journey of consc
 
 ---
 
+## Installation & Management
+
+### Install from Git / Marketplace
+Install and enable directly via the Omarchy CLI:
+```bash
+omarchy plugin add https://github.com/layolayo/omarchy-the-eternal-moment.git --enable
+```
+
+### Update Plugin
+Fetch and merge the latest upstream release:
+```bash
+omarchy plugin update io.github.layolayo.eternal-moment
+```
+
+### Removal / Uninstall
+Remove the plugin and disable its registration:
+```bash
+omarchy plugin remove io.github.layolayo.eternal-moment
+```
+
+---
+
 ## How to Launch
 
 ### 1. Application Launcher (Super Key)
-Search for **The Eternal Moment** in your Omarchy / Hyprland application menu (Rofi, Walker, or Omarchy menu).
+Search for **The Eternal Moment** in your Omarchy application menu (Rofi, Walker, or Omarchy menu).
 
-### 2. Command Line
-Run anywhere:
+### 2. Command Line / Direct Execution
+Run directly via the included launcher script:
 ```bash
-eternal-moment
+~/.config/omarchy/plugins/io.github.layolayo.eternal-moment/launch.sh
 ```
 
-### 3. As an Omarchy Shell Plugin
+### 3. Summon via Omarchy Shell IPC
 ```bash
-omarchy plugin enable io.github.layolayo.eternal-moment
+omarchy-shell shell summon io.github.layolayo.eternal-moment
 ```
 
 ---

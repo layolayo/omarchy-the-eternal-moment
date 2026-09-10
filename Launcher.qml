@@ -8,7 +8,7 @@ Item {
   function open(payloadJson) {
     Quickshell.execDetached([
       "bash", "-c",
-      "exec \"$HOME/Projects/omarchy-the-eternal-moment/launch.sh\""
+      'for dir in "$HOME/.config/omarchy/plugins/io.github.layolayo.eternal-moment" "$HOME/Projects/omarchy-the-eternal-moment"; do if [ -x "$dir/launch.sh" ]; then exec "$dir/launch.sh"; fi; done'
     ])
     Qt.callLater(requestClose)
   }
