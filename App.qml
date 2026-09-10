@@ -228,6 +228,14 @@ ApplicationWindow {
         onActivated: toggleFullscreen()
     }
 
+    Shortcut {
+        sequence: "Escape"
+        enabled: isFullscreen
+        onActivated: {
+            if (isFullscreen) toggleFullscreen();
+        }
+    }
+
     // Background Animated Starfield
     Canvas {
         id: starfieldCanvas
@@ -492,7 +500,7 @@ ApplicationWindow {
                     RowLayout {
                         anchors.fill: parent
                         Text {
-                            text: isFullscreen ? "⛶ Exit Fullscreen (F11)" : "⛶ Fullscreen (F11)"
+                            text: isFullscreen ? "⛶ Exit Fullscreen (F11 / Esc)" : "⛶ Fullscreen (F11)"
                             color: colMuted
                             font.pixelSize: 11
                         }
@@ -511,9 +519,42 @@ ApplicationWindow {
         // MAIN CONTENT AREA
         // ==========================================
         Rectangle {
+            id: mainContentArea
             Layout.fillWidth: true
             Layout.fillHeight: true
             color: "transparent"
+
+            // Top-Right Fullscreen / Float Quick Control
+            Rectangle {
+                anchors.top: parent.top
+                anchors.right: parent.right
+                anchors.margins: 16
+                width: 34
+                height: 34
+                radius: 8
+                z: 100
+                color: fullscreenHover.containsMouse ? Qt.rgba(255, 255, 255, 0.12) : Qt.rgba(255, 255, 255, 0.05)
+                border.width: 1
+                border.color: fullscreenHover.containsMouse ? colCyan : Qt.rgba(255, 255, 255, 0.1)
+
+                Text {
+                    anchors.centerIn: parent
+                    text: isFullscreen ? "🗗" : "⛶"
+                    color: fullscreenHover.containsMouse ? colCyan : colMuted
+                    font.pixelSize: 15
+                }
+
+                ToolTip.visible: fullscreenHover.containsMouse
+                ToolTip.text: isFullscreen ? "Exit Fullscreen (F11 / Esc)" : "Fullscreen Immersion Mode (F11)"
+
+                MouseArea {
+                    id: fullscreenHover
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: toggleFullscreen()
+                }
+            }
 
             // -------------------------------------------------------------
             // 1. CHAMBER TAB (The Active Guided Session)
