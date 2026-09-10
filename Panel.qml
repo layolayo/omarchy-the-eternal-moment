@@ -193,9 +193,9 @@ Panel {
     var d = new Date();
     var ts = d.getFullYear() + "" + String(d.getMonth() + 1).padStart(2, '0') + "" + String(d.getDate()).padStart(2, '0') + "_" + String(d.getHours()).padStart(2, '0') + "" + String(d.getMinutes()).padStart(2, '0');
     var filename = "Process4_EternalMoment_" + ts + ".md";
-    var docsLoc = StandardPaths.writableLocation(StandardPaths.DocumentsLocation).replace(/^file:\/\//, "");
-    if (!docsLoc) {
-      docsLoc = StandardPaths.writableLocation(StandardPaths.HomeLocation).replace(/^file:\/\//, "") + "/Documents";
+    var docsLoc = String(StandardPaths.writableLocation(StandardPaths.DocumentsLocation)).replace(/^file:\/\//, "");
+    if (!docsLoc || docsLoc === "undefined") {
+      docsLoc = String(StandardPaths.writableLocation(StandardPaths.HomeLocation)).replace(/^file:\/\//, "") + "/Documents";
     }
     var targetPath = docsLoc + "/" + filename;
     var cmd = "mkdir -p '" + docsLoc.replace(/'/g, "'\\''") + "' && cat << 'EOF' > '" + targetPath.replace(/'/g, "'\\''") + "'\n" + md + "\nEOF";

@@ -197,11 +197,20 @@ ApplicationWindow {
 
     function executeShellCommand(cmd) {
         try {
-            var proc = Qt.createQmlObject('import Quickshell.Io 1.0; Process {}', appWindow, "shellProc_" + Date.now());
+            var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', appWindow, "shellProc_" + Date.now());
             proc.command = ["bash", "-c", cmd];
             proc.running = true;
-        } catch (e) {
-            console.warn("Process not available in this environment:", e);
+            return true;
+        } catch (e1) {
+            try {
+                var proc2 = Qt.createQmlObject('import Quickshell.Io 1.0; Process {}', appWindow, "shellProc_" + Date.now());
+                proc2.command = ["bash", "-c", cmd];
+                proc2.running = true;
+                return true;
+            } catch (e2) {
+                console.warn("Process not available in this environment:", e1);
+                return false;
+            }
         }
     }
 
@@ -220,17 +229,17 @@ ApplicationWindow {
     }
 
     function getPicturesDirectory() {
-        var loc = StandardPaths.writableLocation(StandardPaths.PicturesLocation).replace(/^file:\/\//, "");
-        if (!loc) {
-            loc = StandardPaths.writableLocation(StandardPaths.HomeLocation).replace(/^file:\/\//, "") + "/Pictures";
+        var loc = String(StandardPaths.writableLocation(StandardPaths.PicturesLocation)).replace(/^file:\/\//, "");
+        if (!loc || loc === "undefined") {
+            loc = String(StandardPaths.writableLocation(StandardPaths.HomeLocation)).replace(/^file:\/\//, "") + "/Pictures";
         }
         return loc + "/TheEternalMoment";
     }
 
     function getDocumentsDirectory() {
-        var loc = StandardPaths.writableLocation(StandardPaths.DocumentsLocation).replace(/^file:\/\//, "");
-        if (!loc) {
-            loc = StandardPaths.writableLocation(StandardPaths.HomeLocation).replace(/^file:\/\//, "") + "/Documents";
+        var loc = String(StandardPaths.writableLocation(StandardPaths.DocumentsLocation)).replace(/^file:\/\//, "");
+        if (!loc || loc === "undefined") {
+            loc = String(StandardPaths.writableLocation(StandardPaths.HomeLocation)).replace(/^file:\/\//, "") + "/Documents";
         }
         return loc;
     }
@@ -255,11 +264,14 @@ ApplicationWindow {
         var dateStr = d.getFullYear() + "" + String(d.getMonth() + 1).padStart(2, '0') + "" + String(d.getDate()).padStart(2, '0') + "_" + String(d.getHours()).padStart(2, '0') + "" + String(d.getMinutes()).padStart(2, '0') + "" + String(d.getSeconds()).padStart(2, '0');
         var filename = "eternity-" + dateStr + ".png";
         var permanentPath = dir + "/" + filename;
-        var tmpPath = StandardPaths.writableLocation(StandardPaths.TempLocation).replace(/^file:\/\//, "") + "/eternal_spiral_share.png";
+        var tmpLoc = String(StandardPaths.writableLocation(StandardPaths.TempLocation)).replace(/^file:\/\//, "");
+        if (!tmpLoc || tmpLoc === "undefined") tmpLoc = "/tmp";
+        var tmpPath = tmpLoc + "/eternal_spiral_share.png";
 
         spiralCanvas.grabToImage(function(result) {
             result.saveToFile(tmpPath);
             result.saveToFile(permanentPath);
+            executeShellCommand("mkdir -p " + escapeShell(dir) + " && cp -f " + escapeShell(tmpPath) + " " + escapeShell(permanentPath));
             if (callback) {
                 callback(tmpPath, permanentPath, filename);
             }
@@ -877,7 +889,7 @@ ApplicationWindow {
                         font.letterSpacing: 1.5
                     }
 
-                    // Floating Action Controls (Reset, Snapshot, Share on X)
+                    // Floating Action Controls (Snapshot, Share on X)
                     RowLayout {
                         anchors.top: parent.top
                         anchors.right: parent.right
@@ -885,44 +897,10 @@ ApplicationWindow {
                         spacing: 10
                         z: 10
 
-                        // 1. Reset Positions Button
+                        // 1. Snapshot Button (Mirroring Ekology #snapshot-btn-eternity)
                         Rectangle {
-                            height: 32
-                            width: resetBtnTxt.implicitWidth + 24
-                            radius: 16
-                            color: resetMouse.containsMouse ? Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.2) : Qt.rgba(15/255, 23/255, 42/255, 0.8)
-                            border.width: 1
-                            border.color: resetMouse.containsMouse ? colCyan : "#334155"
-
-                            Text {
-                                id: resetBtnTxt
-                                anchors.centerIn: parent
-                                text: "↺ Reset Positions"
-                                color: resetMouse.containsMouse ? colCyan : colMuted
-                                font.pixelSize: 11
-                                font.bold: true
-                            }
-
-                            MouseArea {
-                                id: resetMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: function(mouse) {
-                                    SpiralEngine.resetNodePositions();
-                                    if (mouse.modifiers & Qt.ShiftModifier) {
-                                        SpiralEngine.resetCameraView();
-                                        showCanvasToast("Spiral nodes and camera view reset to default.");
-                                    } else {
-                                        showCanvasToast("Spiral nodes reset to original coordinates. (Shift+Click to also reset camera view)");
-                                    }
-                                    spiralCanvas.requestPaint();
-                                }
-                            }
-                        }
-
-                        // 2. Snapshot Button (Mirroring Ekology #snapshot-btn-eternity)
-                        Rectangle {
+                            Layout.preferredHeight: 32
+                            Layout.preferredWidth: snapRow.implicitWidth + 26
                             height: 32
                             width: snapRow.implicitWidth + 26
                             radius: 16
@@ -959,8 +937,10 @@ ApplicationWindow {
                             }
                         }
 
-                        // 3. Share to X Button (Mirroring Ekology #share-x-btn-eternity)
+                        // 2. Share to X Button (Mirroring Ekology #share-x-btn-eternity)
                         Rectangle {
+                            Layout.preferredHeight: 32
+                            Layout.preferredWidth: shareRow.implicitWidth + 26
                             height: 32
                             width: shareRow.implicitWidth + 26
                             radius: 16
