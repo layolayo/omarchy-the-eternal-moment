@@ -77,6 +77,13 @@ function saveSession(session) {
     var postClar = normalizePct(session.post_clarity !== undefined ? session.post_clarity : 50);
 
     db.transaction(function(tx) {
+        if (!recordId && session.uuid) {
+            var existing = tx.executeSql("SELECT id FROM sessions WHERE uuid = ?", [session.uuid]);
+            if (existing && existing.rows && existing.rows.length > 0) {
+                recordId = existing.rows.item(0).id;
+            }
+        }
+
         if (!recordId) {
             var uuid = session.uuid || generateUUID();
             var answersJson = JSON.stringify(session.answers || []);

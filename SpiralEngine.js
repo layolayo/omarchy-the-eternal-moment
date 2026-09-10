@@ -278,6 +278,9 @@ function render(ctx, w, h, mouseX, mouseY) {
     helixRadius = Math.max(160, 270 * scaleFactor);
     verticalSpacing = Math.max(35, 52 * scaleFactor);
 
+    // Clear entire canvas frame
+    ctx.clearRect(0, 0, w, h);
+
     // 1. Deep Space Cosmic Background
     var bgGrad = ctx.createLinearGradient(0, 0, w, h);
     bgGrad.addColorStop(0, "#020617");

@@ -75,6 +75,9 @@ Panel {
   }
 
   function startNewSession() {
+    if (!flatSteps || flatSteps.length === 0) {
+      flatSteps = ProcessData.buildFlatSteps();
+    }
     activeSessionId = 0;
     sessionUuid = Database.generateUUID();
     currentStepIndex = 0;
@@ -94,17 +97,22 @@ Panel {
     isFinishMetricsModalOpen = false;
 
     // Persist draft
-    var s = {
-      uuid: sessionUuid,
-      status: "in_progress",
-      current_step: 0,
-      pre_clarity: preClarity,
-      pre_movement: preMovement,
-      pre_focus: preMovement,
-      answers: answers
-    };
-    activeSessionId = Database.saveSession(s);
-    refreshHistory();
+    try {
+      var s = {
+        id: 0,
+        uuid: sessionUuid,
+        status: "in_progress",
+        current_step: 0,
+        pre_clarity: preClarity,
+        pre_movement: preMovement,
+        pre_focus: preMovement,
+        answers: answers
+      };
+      activeSessionId = Database.saveSession(s);
+      refreshHistory();
+    } catch (e) {
+      console.error("Error saving new session in Panel:", e);
+    }
     isCheckinModalOpen = true;
   }
 
@@ -135,6 +143,7 @@ Panel {
   }
 
   function saveFinalMetrics() {
+    if (!root.activeSessionId) return;
     var s = {
       id: activeSessionId,
       uuid: sessionUuid,
@@ -1618,7 +1627,7 @@ Panel {
                   to: 100
                   stepSize: 1
                   value: root.postClarity
-                  onValueChanged: {
+                  onMoved: {
                     root.postClarity = Math.round(value);
                     root.saveFinalMetrics();
                   }
@@ -1730,7 +1739,7 @@ Panel {
                   to: 100
                   stepSize: 1
                   value: root.postMovement
-                  onValueChanged: {
+                  onMoved: {
                     root.postMovement = Math.round(value);
                     root.postFocus = root.postMovement;
                     root.saveFinalMetrics();

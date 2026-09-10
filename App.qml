@@ -94,6 +94,9 @@ ApplicationWindow {
     }
 
     function startNewSession() {
+        if (!flatSteps || flatSteps.length === 0) {
+            flatSteps = ProcessData.buildFlatSteps();
+        }
         activeSessionId = 0;
         sessionUuid = Database.generateUUID();
         currentStepIndex = 0;
@@ -112,18 +115,30 @@ ApplicationWindow {
         viewingSession = null;
         isFinishMetricsModalOpen = false;
 
-        var s = {
-            uuid: sessionUuid,
-            status: "in_progress",
-            current_step: 0,
-            pre_clarity: preClarity,
-            pre_movement: preMovement,
-            pre_focus: preMovement,
-            answers: answers
-        };
-        activeSessionId = Database.saveSession(s);
+        // Immediately clear visual display and reset 3D engine state
+        SpiralEngine.reset(true);
         SpiralEngine.rebuildFromSession(flatSteps, answers, 0, false);
-        refreshHistory();
+        if (typeof spiralCanvas !== "undefined" && spiralCanvas && spiralCanvas.requestPaint) {
+            spiralCanvas.requestPaint();
+        }
+
+        try {
+            var s = {
+                id: 0,
+                uuid: sessionUuid,
+                status: "in_progress",
+                current_step: 0,
+                pre_clarity: preClarity,
+                pre_movement: preMovement,
+                pre_focus: preMovement,
+                answers: answers
+            };
+            activeSessionId = Database.saveSession(s);
+            refreshHistory();
+        } catch (e) {
+            console.error("Error saving new session:", e);
+        }
+
         isCheckinModalOpen = true;
     }
 
@@ -158,6 +173,7 @@ ApplicationWindow {
     }
 
     function saveFinalMetrics() {
+        if (!activeSessionId) return;
         var s = {
             id: activeSessionId,
             uuid: sessionUuid,
@@ -1858,6 +1874,31 @@ ApplicationWindow {
 
                         Rectangle {
                             height: 38
+                            width: 140
+                            radius: 6
+                            color: Qt.rgba(colGold.r, colGold.g, colGold.b, 0.15)
+                            border.width: 1.5
+                            border.color: colGold
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "🌀 New Session"
+                                color: colGold
+                                font.bold: true
+                                font.pixelSize: 12
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
+                                    startNewSession();
+                                }
+                            }
+                        }
+
+                        Rectangle {
+                            height: 38
                             width: 150
                             radius: 6
                             color: Qt.rgba(colPast.r, colPast.g, colPast.b, 0.15)
@@ -2971,7 +3012,7 @@ ApplicationWindow {
                                 to: 100
                                 stepSize: 1
                                 value: postClarity
-                                onValueChanged: {
+                                onMoved: {
                                     postClarity = Math.round(value);
                                     saveFinalMetrics();
                                 }
@@ -3079,7 +3120,7 @@ ApplicationWindow {
                                 to: 100
                                 stepSize: 1
                                 value: postMovement
-                                onValueChanged: {
+                                onMoved: {
                                     postMovement = Math.round(value);
                                     postFocus = postMovement;
                                     saveFinalMetrics();
