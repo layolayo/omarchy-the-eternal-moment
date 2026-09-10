@@ -99,7 +99,7 @@ ApplicationWindow {
             answers: answers
         };
         activeSessionId = Database.saveSession(s);
-        SpiralEngine.rebuildFromSession(flatSteps, answers, 0);
+        SpiralEngine.rebuildFromSession(flatSteps, answers, 0, false);
         refreshHistory();
     }
 
@@ -604,7 +604,7 @@ ApplicationWindow {
                         id: spiralMouse
                         anchors.fill: parent
                         hoverEnabled: true
-                        cursorShape: pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
+                        cursorShape: pressed ? (SpiralEngine.isDraggingNode() ? Qt.SizeAllCursor : Qt.ClosedHandCursor) : (SpiralEngine.hasNodeAt(mouseX, mouseY) ? Qt.PointingHandCursor : Qt.OpenHandCursor)
 
                         property real lastX: 0
                         property real lastY: 0
@@ -612,11 +612,13 @@ ApplicationWindow {
                         onPressed: function(mouse) {
                             lastX = mouse.x;
                             lastY = mouse.y;
-                            SpiralEngine.isRotating = true;
+                            SpiralEngine.startDrag(mouse.x, mouse.y);
+                            spiralCanvas.requestPaint();
                         }
 
                         onReleased: function(mouse) {
-                            SpiralEngine.isRotating = false;
+                            SpiralEngine.endDrag();
+                            spiralCanvas.requestPaint();
                         }
 
                         onPositionChanged: function(mouse) {
@@ -649,6 +651,39 @@ ApplicationWindow {
                         font.letterSpacing: 1.5
                     }
 
+                    // Reset Positions Button
+                    Rectangle {
+                        anchors.top: parent.top
+                        anchors.right: parent.right
+                        anchors.margins: 16
+                        height: 28
+                        width: resetBtnTxt.implicitWidth + 20
+                        radius: 14
+                        color: resetMouse.containsMouse ? Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.2) : Qt.rgba(15/255, 23/255, 42/255, 0.75)
+                        border.width: 1
+                        border.color: resetMouse.containsMouse ? colCyan : "#334155"
+
+                        Text {
+                            id: resetBtnTxt
+                            anchors.centerIn: parent
+                            text: "↺ Reset Positions"
+                            color: resetMouse.containsMouse ? colCyan : colMuted
+                            font.pixelSize: 11
+                            font.bold: true
+                        }
+
+                        MouseArea {
+                            id: resetMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                SpiralEngine.resetNodePositions();
+                                spiralCanvas.requestPaint();
+                            }
+                        }
+                    }
+
                     // Rotational Hint Pill
                     Rectangle {
                         anchors.bottom: parent.bottom
@@ -664,7 +699,7 @@ ApplicationWindow {
                         Text {
                             id: rotHintText
                             anchors.centerIn: parent
-                            text: "🖱️ Drag to rotate 3D view • Wheel to zoom • Shift+Drag to travel time"
+                            text: "🖱️ Drag background to rotate • Drag nodes to reposition • Wheel to zoom • Shift+Drag for time travel"
                             color: colMuted
                             font.pixelSize: 11
                         }

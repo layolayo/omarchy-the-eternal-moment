@@ -18,6 +18,7 @@ var showHelix = true;
 var comparisonMode = null;
 var draggedNode = null;
 var isRotating = false;
+var currentCompression = 0.45;
 
 // Stars for the integrated cosmic backdrop
 var stars = [];
@@ -131,6 +132,7 @@ function project(w, h, x, y, z) {
     var screenX = centerX + x1 * perspective;
     var verticalRange = h * 0.45;
     var compressionFactor = verticalRange / 800;
+    currentCompression = compressionFactor;
     var screenY = centerY + (y1 * perspective * compressionFactor);
 
     return { x: screenX, y: screenY, z: z2, scale: perspective };
@@ -176,7 +178,21 @@ function update(w, h) {
     }
 }
 
-function rebuildFromSession(flatSteps, answers, currentStepIndex) {
+function rebuildFromSession(flatSteps, answers, currentStepIndex, preserveOffsets) {
+    var savedOffsets = {};
+    if (preserveOffsets !== false) {
+        for (var d = 0; d < nodes.length; d++) {
+            var nd = nodes[d];
+            if (nd && nd.dragOffset && (nd.dragOffset.x !== 0 || nd.dragOffset.y !== 0 || (nd.dragOffset.z && nd.dragOffset.z !== 0))) {
+                savedOffsets[nd.id] = {
+                    x: nd.dragOffset.x,
+                    y: nd.dragOffset.y,
+                    z: nd.dragOffset.z || 0
+                };
+            }
+        }
+    }
+
     reset();
     if (!flatSteps || flatSteps.length === 0) return;
 
@@ -196,7 +212,14 @@ function rebuildFromSession(flatSteps, answers, currentStepIndex) {
         if (step.key !== "cta" && step.key !== "review") {
             var nodeNowIndex = replayNowIndex;
             if (nodeType === "insight") nodeNowIndex = replayNowIndex + 1;
-            addNode(nodeType, step.id, ansText, nodeNowIndex);
+            var newNode = addNode(nodeType, step.id, ansText, nodeNowIndex);
+            if (savedOffsets[step.id]) {
+                newNode.dragOffset = {
+                    x: savedOffsets[step.id].x,
+                    y: savedOffsets[step.id].y,
+                    z: savedOffsets[step.id].z
+                };
+            }
         } else if (step.key === "cta") {
             var fromId = step.id - 1;
             var nowStep = null;
@@ -330,10 +353,22 @@ function render(ctx, w, h, mouseX, mouseY) {
                     var baseY2 = (n2.nowIndex - currentNowIndex) * verticalSpacing * 6 + (n2.orbitY || 0);
                     var y3d = baseY1 + (baseY2 - baseY1) * frac;
 
+                    var dragX1 = (n1.dragOffset && n1.dragOffset.x) || 0;
+                    var dragY1 = (n1.dragOffset && n1.dragOffset.y) || 0;
+                    var dragZ1 = (n1.dragOffset && n1.dragOffset.z) || 0;
+
+                    var dragX2 = (n2.dragOffset && n2.dragOffset.x) || 0;
+                    var dragY2 = (n2.dragOffset && n2.dragOffset.y) || 0;
+                    var dragZ2 = (n2.dragOffset && n2.dragOffset.z) || 0;
+
+                    var draggingOffsetX = dragX1 * (1 - frac) + dragX2 * frac;
+                    var draggingOffsetY = dragY1 * (1 - frac) + dragY2 * frac;
+                    var draggingOffsetZ = dragZ1 * (1 - frac) + dragZ2 * frac;
+
                     var curX = Math.sin(curPhase) * helixRadius;
                     var curZ = Math.cos(curPhase) * helixRadius;
 
-                    var pt = project(w, h, curX, y3d, curZ);
+                    var pt = project(w, h, curX + draggingOffsetX, y3d + draggingOffsetY, curZ + draggingOffsetZ);
                     if (pt.scale <= 0) {
                         if (seg > 0) ctx.stroke();
                         ctx.beginPath();
@@ -466,8 +501,18 @@ function render(ctx, w, h, mouseX, mouseY) {
             drawLensFlare(ctx, rNode.x, rNode.y, coreSize * 2.2, colStr);
         }
 
-        // Pulsing Selection Ring around active node
-        if (rNode.id === activeNodeId) {
+        // Dragging reposition ring
+        if (draggedNode && rNode.id === draggedNode.id) {
+            ctx.save();
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2.5;
+            if (ctx.setLineDash) ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.arc(rNode.x, rNode.y, (18 * rNode.scale), 0, Math.PI * 2);
+            ctx.stroke();
+            if (ctx.setLineDash) ctx.setLineDash([]);
+            ctx.restore();
+        } else if (rNode.id === activeNodeId) {
             var pulse = (Math.sin(Date.now() * 0.006) + 1.0) * 0.5;
             ctx.strokeStyle = "rgba(" + colStr + ", " + (0.4 + pulse * 0.5) + ")";
             ctx.lineWidth = 2;
@@ -518,17 +563,89 @@ function render(ctx, w, h, mouseX, mouseY) {
     }
 }
 
-function handleDrag(dx, dy, isShift) {
-    if (isShift) {
-        // Shift + Drag = Time Travel
-        targetNowIndex -= dy * 0.02;
-        targetNowIndex = Math.max(1, Math.min(maxNowIndex + 1, targetNowIndex));
+function getNodeAt(mouseX, mouseY) {
+    var best = null;
+    var bestDepth = 999999;
+    for (var i = 0; i < nodes.length; i++) {
+        var node = nodes[i];
+        if (!node || !node.lastRenderedScale || node.lastRenderedScale <= 0) continue;
+        var dx = mouseX - (node.lastRenderedX || -1000);
+        var dy = mouseY - (node.lastRenderedY || -1000);
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        var hitRadius = Math.max(22, 38 * (node.lastRenderedScale || 1));
+        if (dist < hitRadius) {
+            var depth = -(node.lastRenderedScale || 1);
+            if (depth < bestDepth) {
+                bestDepth = depth;
+                best = node;
+            }
+        }
+    }
+    return best;
+}
+
+function hasNodeAt(mouseX, mouseY) {
+    return getNodeAt(mouseX, mouseY) !== null;
+}
+
+function isDraggingNode() {
+    return draggedNode !== null;
+}
+
+function startDrag(mouseX, mouseY) {
+    var clickedNode = getNodeAt(mouseX, mouseY);
+    if (clickedNode) {
+        draggedNode = clickedNode;
+        isRotating = false;
+        activeNodeId = clickedNode.id;
+        return true;
     } else {
-        // Standard Drag = Rotate Camera (Yaw & Pitch)
-        rotationY += dx * 0.008;
-        rotationX += dy * 0.008;
-        // Limit pitch to prevent flipping upside down
-        rotationX = Math.max(-1.2, Math.min(1.2, rotationX));
+        draggedNode = null;
+        isRotating = true;
+        return false;
+    }
+}
+
+function handleDrag(dx, dy, isShift) {
+    if (draggedNode) {
+        // Moving a specific node in 3D space - project screen delta to world space
+        var scaling = 1 / (draggedNode.lastRenderedScale || 1);
+
+        var cosY = Math.cos(-rotationY);
+        var sinY = Math.sin(-rotationY);
+
+        if (!draggedNode.dragOffset) {
+            draggedNode.dragOffset = { x: 0, y: 0, z: 0 };
+        }
+        draggedNode.dragOffset.x += (dx * cosY) * scaling;
+        draggedNode.dragOffset.z = (draggedNode.dragOffset.z || 0) + (dx * sinY) * scaling;
+        var comp = (currentCompression > 0) ? currentCompression : 0.45;
+        draggedNode.dragOffset.y += (dy * scaling) / comp;
+    } else if (isRotating) {
+        if (isShift) {
+            // Shift + Drag = Time Travel
+            targetNowIndex -= dy * 0.02;
+            targetNowIndex = Math.max(1, Math.min(maxNowIndex + 1, targetNowIndex));
+        } else {
+            // Standard Drag = Rotate Camera (Yaw & Pitch)
+            rotationY += dx * 0.008;
+            rotationX += dy * 0.008;
+            // Limit pitch to prevent flipping upside down
+            rotationX = Math.max(-1.2, Math.min(1.2, rotationX));
+        }
+    }
+}
+
+function endDrag() {
+    isRotating = false;
+    draggedNode = null;
+}
+
+function resetNodePositions() {
+    for (var i = 0; i < nodes.length; i++) {
+        if (nodes[i]) {
+            nodes[i].dragOffset = { x: 0, y: 0, z: 0 };
+        }
     }
 }
 
