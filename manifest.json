@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.layolayo.eternal-moment",
+  "name": "The Eternal Moment: Process #4",
+  "version": "1.0.0",
+  "author": "Matthew Hudson",
+  "license": "MIT",
+  "description": "Authentic Emergent Knowledge Process #4 mindfulness & self-reflection session tool with local SQLite storage, session archiving, and reports.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "The Eternal Moment",
+    "description": "Emergent Knowledge Process #4 interactive mindfulness & reflection oracle",
+    "category": "Widgets",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}
