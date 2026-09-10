@@ -38,14 +38,16 @@ function initStars(w, h) {
     starsInitialized = true;
 }
 
-function reset() {
+function reset(resetCamera) {
     nodes = [];
     connections = [];
-    rotationX = 0.22;
-    rotationY = 0.0;
-    zoom = 1.0;
-    currentNowIndex = 1.0;
-    targetNowIndex = 1.0;
+    if (resetCamera !== false) {
+        rotationX = 0.22;
+        rotationY = 0.0;
+        zoom = 1.0;
+        currentNowIndex = 1.0;
+        targetNowIndex = 1.0;
+    }
     maxNowIndex = 1;
     activeNodeId = null;
     hoveredNodeId = null;
@@ -189,7 +191,8 @@ function update(w, h) {
 
 function rebuildFromSession(flatSteps, answers, currentStepIndex, preserveOffsets) {
     var savedOffsets = {};
-    if (preserveOffsets !== false) {
+    var shouldPreserve = (preserveOffsets !== false);
+    if (shouldPreserve) {
         for (var d = 0; d < nodes.length; d++) {
             var nd = nodes[d];
             if (nd && nd.dragOffset && (nd.dragOffset.x !== 0 || nd.dragOffset.y !== 0 || (nd.dragOffset.z && nd.dragOffset.z !== 0))) {
@@ -202,7 +205,8 @@ function rebuildFromSession(flatSteps, answers, currentStepIndex, preserveOffset
         }
     }
 
-    reset();
+    // Retain viewing angle (rotationX, rotationY, zoom, currentNowIndex) when updating or adding nodes
+    reset(!shouldPreserve);
     if (!flatSteps || flatSteps.length === 0) return;
 
     var replayNowIndex = 1;
@@ -810,6 +814,12 @@ function resetNodePositions() {
             nodes[i].dragOffset = { x: 0, y: 0, z: 0 };
         }
     }
+}
+
+function resetCameraView() {
+    rotationX = 0.22;
+    rotationY = 0.0;
+    zoom = 1.0;
 }
 
 function handleWheel(delta) {

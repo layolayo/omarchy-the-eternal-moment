@@ -908,10 +908,15 @@ ApplicationWindow {
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: {
+                                onClicked: function(mouse) {
                                     SpiralEngine.resetNodePositions();
+                                    if (mouse.modifiers & Qt.ShiftModifier) {
+                                        SpiralEngine.resetCameraView();
+                                        showCanvasToast("Spiral nodes and camera view reset to default.");
+                                    } else {
+                                        showCanvasToast("Spiral nodes reset to original coordinates. (Shift+Click to also reset camera view)");
+                                    }
                                     spiralCanvas.requestPaint();
-                                    showCanvasToast("Spiral nodes reset to original coordinates.");
                                 }
                             }
                         }
