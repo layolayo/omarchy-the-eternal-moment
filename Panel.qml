@@ -260,17 +260,52 @@ Panel {
     return false;
   }
 
-  function escapeShell(str) {
-    return "'" + String(str).replace(/'/g, "'\\''") + "'";
+  FileView {
+    id: panelMdFile
+    atomicWrites: true
+    watchChanges: false
+    printErrors: false
+    onSaved: copyStatusMessage = "Saved to " + path
+    onSaveFailed: function(err) { copyStatusMessage = "Export failed: " + err }
+  }
+
+  FileView {
+    id: panelPdfFile
+    atomicWrites: true
+    watchChanges: false
+    printErrors: false
+    onSaved: {
+      copyStatusMessage = "Saved to " + path;
+      Qt.openUrlExternally("file://" + path);
+    }
+    onSaveFailed: function(err) { copyStatusMessage = "PDF export failed: " + err }
+  }
+
+  Process {
+    id: panelTextClipProc
+    command: ["/usr/bin/wl-copy"]
+    stdinEnabled: true
+    property string payload: ""
+    onStarted: {
+      write(payload);
+      stdinEnabled = false;
+    }
+    onExited: function(code) {
+      if (code === 0) copyStatusMessage = "Report copied to clipboard!";
+    }
   }
 
   function copyReportText() {
     var target = getResolvedReportSession();
     if (!target) return;
     var md = Report.generateMarkdownReport(target, flatSteps, ProcessData.questionLibrary);
-    // Direct argv invocation with trusted absolute path (zero shell pipeline)
-    Quickshell.execDetached(["/usr/bin/wl-copy", "--", md]);
-    copyStatusMessage = "Report copied to clipboard!";
+    if (!md || md.trim().length === 0) return;
+    try {
+      panelTextClipProc.payload = md;
+      panelTextClipProc.running = true;
+    } catch (e) {
+      copyStatusMessage = "Clipboard copy failed";
+    }
   }
 
   function exportReportToFile() {
@@ -290,12 +325,13 @@ Panel {
       } catch (e2) {}
     }
     if (!docsLoc || docsLoc === "undefined" || docsLoc === "null" || docsLoc === "/Documents") {
-      docsLoc = "/tmp";
+      try {
+        docsLoc = decodeURIComponent(String(StandardPaths.writableLocation(StandardPaths.HomeLocation)).replace(/^file:\/\//, ""));
+      } catch (e3) {}
     }
     var targetPath = docsLoc + "/" + filename;
-    var cmd = "export PATH=/usr/bin:/bin; /usr/bin/mkdir -p " + escapeShell(docsLoc) + " && /usr/bin/printf '%s' " + escapeShell(md) + " > " + escapeShell(targetPath);
-    Quickshell.execDetached(["/bin/sh", "-c", cmd]);
-    copyStatusMessage = "Saved to " + targetPath;
+    panelMdFile.path = targetPath;
+    panelMdFile.setText(md);
   }
 
   function exportPdfToFile() {
@@ -315,13 +351,13 @@ Panel {
       } catch (e2) {}
     }
     if (!docsLoc || docsLoc === "undefined" || docsLoc === "null" || docsLoc === "/Documents") {
-      docsLoc = "/tmp";
+      try {
+        docsLoc = decodeURIComponent(String(StandardPaths.writableLocation(StandardPaths.HomeLocation)).replace(/^file:\/\//, ""));
+      } catch (e3) {}
     }
     var targetPath = docsLoc + "/" + filename;
-    var cmd = "export PATH=/usr/bin:/bin; /usr/bin/mkdir -p " + escapeShell(docsLoc) + " && /usr/bin/printf '%s' " + escapeShell(pdfData) + " > " + escapeShell(targetPath);
-    Quickshell.execDetached(["/bin/sh", "-c", cmd]);
-    copyStatusMessage = "Saved to " + targetPath;
-    Qt.openUrlExternally("file://" + targetPath);
+    panelPdfFile.path = targetPath;
+    panelPdfFile.setText(pdfData);
   }
 
   function shareHighlightToX() {

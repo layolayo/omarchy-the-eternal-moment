@@ -3,6 +3,8 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
 import QtCore
+import Quickshell
+import Quickshell.Io
 import "ProcessData.js" as ProcessData
 import "Database.js" as Database
 import "Report.js" as Report
@@ -282,24 +284,81 @@ ApplicationWindow {
         isSidebarOpen = !isSidebarOpen;
     }
 
-    function executeShellCommand(cmd) {
-        var wrappedCmd = "export PATH=/usr/bin:/bin; " + cmd;
-        try {
-            var proc = Qt.createQmlObject('import Quickshell.Io; Process { onRunningChanged: if (!running) destroy() }', appWindow, "shellProc_" + Date.now());
-            proc.command = ["/bin/sh", "-c", wrappedCmd];
-            proc.running = true;
-            return true;
-        } catch (e1) {
-            try {
-                var proc2 = Qt.createQmlObject('import Quickshell.Io 1.0; Process { onRunningChanged: if (!running) destroy() }', appWindow, "shellProc_" + Date.now());
-                proc2.command = ["/bin/sh", "-c", wrappedCmd];
-                proc2.running = true;
-                return true;
-            } catch (e2) {
-                console.warn("Process not available in this environment:", e1);
-                return false;
+    // --- Safe Native I/O Components (Zero Shell Execution) ---
+    FileView {
+        id: markdownExportFile
+        atomicWrites: true
+        watchChanges: false
+        printErrors: false
+        onSaved: {
+            showCanvasToast("Report saved: " + path.substring(path.lastIndexOf('/') + 1));
+        }
+        onSaveFailed: function(err) {
+            showCanvasToast("Export failed: " + err);
+        }
+    }
+
+    FileView {
+        id: pdfExportFile
+        atomicWrites: true
+        watchChanges: false
+        printErrors: false
+        onSaved: {
+            showCanvasToast("PDF saved: " + path.substring(path.lastIndexOf('/') + 1));
+            Qt.openUrlExternally("file://" + path);
+        }
+        onSaveFailed: function(err) {
+            showCanvasToast("PDF export failed: " + err);
+        }
+    }
+
+    // Text Clipboard I/O via stdin (zero cmdline text leakage, zero ARG_MAX limits, zero shell)
+    Process {
+        id: textClipProc
+        command: ["/usr/bin/wl-copy"]
+        stdinEnabled: true
+        property string payload: ""
+        onStarted: {
+            write(payload);
+            stdinEnabled = false;
+        }
+        onExited: function(code) {
+            if (code === 0) {
+                showCanvasToast("Report copied to clipboard!");
             }
         }
+    }
+
+    // Image Clipboard I/O via stdin (reads binary PNG data, passes directly to wl-copy)
+    FileView {
+        id: imageReader
+        preload: true
+        watchChanges: false
+        onLoaded: {
+            if (path && path.length > 0) {
+                imageClipProc.running = true;
+            }
+        }
+    }
+
+    Process {
+        id: imageClipProc
+        command: ["/usr/bin/wl-copy", "-t", "image/png"]
+        stdinEnabled: true
+        onStarted: {
+            write(imageReader.data());
+            stdinEnabled = false;
+        }
+        onExited: function(code) {
+            if (code === 0) {
+                showCanvasToast("📷 Image copied to clipboard!");
+            }
+        }
+    }
+
+    function copyImageToClipboard(filePath) {
+        if (!filePath) return;
+        imageReader.path = filePath;
     }
 
     function showCanvasToast(msg) {
@@ -312,16 +371,13 @@ ApplicationWindow {
         var target = getResolvedReportSession();
         if (!target) return;
         var md = Report.generateMarkdownReport(target, flatSteps, ProcessData.questionLibrary);
-        // Direct argv invocation with trusted absolute path (zero shell pipeline)
-        if (typeof Quickshell !== "undefined" && typeof Quickshell.execDetached === "function") {
-            try {
-                Quickshell.execDetached(["/usr/bin/wl-copy", "--", md]);
-                showCanvasToast("Full report copied to clipboard!");
-                return;
-            } catch (e) {}
+        if (!md || md.trim().length === 0) return;
+        try {
+            textClipProc.payload = md;
+            textClipProc.running = true;
+        } catch (e) {
+            console.warn("Clipboard copy failed:", e);
         }
-        executeShellCommand("/usr/bin/wl-copy -- " + escapeShell(md) + " || /usr/bin/printf '%s' " + escapeShell(md) + " | /usr/bin/xclip -selection clipboard");
-        showCanvasToast("Full report copied to clipboard!");
     }
 
     function getPicturesDirectory() {
@@ -335,7 +391,9 @@ ApplicationWindow {
             } catch (e2) {}
         }
         if (!loc || loc === "undefined" || loc === "null" || loc === "/Pictures") {
-            loc = "/tmp";
+            try {
+                loc = decodeURIComponent(String(StandardPaths.writableLocation(StandardPaths.HomeLocation)).replace(/^file:\/\//, ""));
+            } catch (e3) {}
         }
         return loc + "/TheEternalMoment";
     }
@@ -351,7 +409,9 @@ ApplicationWindow {
             } catch (e2) {}
         }
         if (!loc || loc === "undefined" || loc === "null" || loc === "/Documents") {
-            loc = "/tmp";
+            try {
+                loc = decodeURIComponent(String(StandardPaths.writableLocation(StandardPaths.HomeLocation)).replace(/^file:\/\//, ""));
+            } catch (e3) {}
         }
         return loc;
     }
@@ -364,8 +424,9 @@ ApplicationWindow {
         var ts = d.getFullYear() + "" + String(d.getMonth() + 1).padStart(2, '0') + "" + String(d.getDate()).padStart(2, '0') + "_" + String(d.getHours()).padStart(2, '0') + "" + String(d.getMinutes()).padStart(2, '0');
         var filename = "Process4_EternalMoment_" + ts + ".md";
         var docsDir = getDocumentsDirectory();
-        executeShellCommand("/usr/bin/mkdir -p " + escapeShell(docsDir) + " && /usr/bin/printf '%s' " + escapeShell(md) + " > " + escapeShell(docsDir + "/" + filename));
-        showCanvasToast("Report saved to " + filename);
+        if (!docsDir) return;
+        markdownExportFile.path = docsDir + "/" + filename;
+        markdownExportFile.setText(md);
     }
 
     function exportPdfToFile() {
@@ -376,26 +437,24 @@ ApplicationWindow {
         var ts = d.getFullYear() + "" + String(d.getMonth() + 1).padStart(2, '0') + "" + String(d.getDate()).padStart(2, '0') + "_" + String(d.getHours()).padStart(2, '0') + "" + String(d.getMinutes()).padStart(2, '0');
         var filename = "Process4_EternalMoment_" + ts + ".pdf";
         var docsDir = getDocumentsDirectory();
-        var targetPath = docsDir + "/" + filename;
-        executeShellCommand("/usr/bin/mkdir -p " + escapeShell(docsDir) + " && /usr/bin/printf '%s' " + escapeShell(pdfData) + " > " + escapeShell(targetPath));
-        showCanvasToast("PDF saved to " + filename);
-        Qt.openUrlExternally("file://" + targetPath);
+        if (!docsDir) return;
+        pdfExportFile.path = docsDir + "/" + filename;
+        pdfExportFile.setText(pdfData);
     }
 
     function captureSpiralSnapshot(callback) {
         var dir = getPicturesDirectory();
-        executeShellCommand("/usr/bin/mkdir -p " + escapeShell(dir));
+        if (typeof Quickshell !== "undefined" && typeof Quickshell.execDetached === "function") {
+            try {
+                Quickshell.execDetached(["/usr/bin/mkdir", "-p", dir]);
+            } catch (e) {}
+        }
 
         var d = new Date();
         var dateStr = d.getFullYear() + "" + String(d.getMonth() + 1).padStart(2, '0') + "" + String(d.getDate()).padStart(2, '0') + "_" + String(d.getHours()).padStart(2, '0') + "" + String(d.getMinutes()).padStart(2, '0') + "" + String(d.getSeconds()).padStart(2, '0');
         var filename = "eternity-" + dateStr + ".png";
         var permanentPath = dir + "/" + filename;
-        var tmpLoc = "";
-        try {
-            tmpLoc = decodeURIComponent(String(StandardPaths.writableLocation(StandardPaths.TempLocation)).replace(/^file:\/\//, ""));
-        } catch (e) {}
-        if (!tmpLoc || tmpLoc === "undefined" || tmpLoc === "null") tmpLoc = "/tmp";
-        var tmpPath = tmpLoc + "/eternal_spiral_share_" + Date.now() + ".png";
+        var tmpPath = dir + "/.spiral_share_" + Date.now() + ".png";
 
         spiralCanvas.grabToImage(function(result) {
             result.saveToFile(tmpPath);
@@ -418,8 +477,8 @@ ApplicationWindow {
             var insightPart = insight ? "\n" + insight + "\n\n" : "\n";
             shareCaption = "Process #4 Emergence:" + insightPart + "#Ekology #CleanLanguage #EmergentKnowledge #Process4";
 
-            // Pre-load clipboard with image via trusted absolute path
-            executeShellCommand("/usr/bin/wl-copy -t image/png < " + escapeShell(permanentPath));
+            // Pre-load clipboard with image via Process stdin (no shell)
+            copyImageToClipboard(permanentPath);
 
             shareModalVisible = true;
         });
@@ -427,7 +486,7 @@ ApplicationWindow {
 
     function submitPostToX() {
         if (sharePreviewPath) {
-            executeShellCommand("/usr/bin/wl-copy -t image/png < " + escapeShell(sharePreviewPath));
+            copyImageToClipboard(sharePreviewPath);
         }
         var tweet = shareCaption.trim();
         var intentUrl = "https://x.com/intent/post?text=" + encodeURIComponent(tweet);
@@ -439,17 +498,13 @@ ApplicationWindow {
 
     function takeCanvasSnapshot() {
         captureSpiralSnapshot(function(tmpPath, permanentPath, filename) {
-            executeShellCommand("/usr/bin/wl-copy -t image/png < " + escapeShell(permanentPath));
+            copyImageToClipboard(permanentPath);
             showCanvasToast("Snapshot Saved");
         });
     }
 
     function shareHighlightToX() {
         openShareModal();
-    }
-
-    function escapeShell(str) {
-        return "'" + str.replace(/'/g, "'\\''") + "'";
     }
 
     function stepTypeColor(key) {
@@ -2675,7 +2730,7 @@ ApplicationWindow {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 if (sharePreviewPath) {
-                                    executeShellCommand("/usr/bin/wl-copy -t image/png < " + escapeShell(sharePreviewPath));
+                                    copyImageToClipboard(sharePreviewPath);
                                     showCanvasToast("📋 Image copied to clipboard!");
                                 }
                             }
