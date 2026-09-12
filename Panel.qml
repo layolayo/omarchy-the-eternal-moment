@@ -143,6 +143,38 @@ Panel {
     activeTab = "report";
   }
 
+  function getResolvedReportSession() {
+    if (viewingSession) return viewingSession;
+    var active = activeSessionId ? Database.loadSession(activeSessionId) : null;
+    var hasActiveAnswers = false;
+    if (active && active.answers && Array.isArray(active.answers)) {
+      for (var i = 0; i < active.answers.length; i++) {
+        if (active.answers[i] && String(active.answers[i]).trim().length > 0) {
+          hasActiveAnswers = true;
+          break;
+        }
+      }
+    }
+    if (hasActiveAnswers) {
+      return active;
+    }
+    var recents = (historicalSessions && historicalSessions.length > 0) ? historicalSessions : Database.listSessions(10);
+    if (recents && recents.length > 0) {
+      for (var h = 0; h < recents.length; h++) {
+        var cand = Database.loadSession(recents[h].id);
+        if (cand && cand.answers && Array.isArray(cand.answers)) {
+          for (var j = 0; j < cand.answers.length; j++) {
+            if (cand.answers[j] && String(cand.answers[j]).trim().length > 0) {
+              return cand;
+            }
+          }
+        }
+      }
+      return Database.loadSession(recents[0].id) || active;
+    }
+    return active;
+  }
+
   function saveFinalMetrics() {
     if (!root.activeSessionId) return;
     var s = {
@@ -233,7 +265,7 @@ Panel {
   }
 
   function copyReportText() {
-    var target = viewingSession || Database.loadSession(activeSessionId);
+    var target = getResolvedReportSession();
     if (!target) return;
     var md = Report.generateMarkdownReport(target, flatSteps, ProcessData.questionLibrary);
     Quickshell.execDetached(["/bin/sh", "-c", "export PATH=/usr/bin:/bin; printf '%s' " + escapeShell(md) + " | wl-copy"]);
@@ -241,7 +273,7 @@ Panel {
   }
 
   function exportReportToFile() {
-    var target = viewingSession || Database.loadSession(activeSessionId);
+    var target = getResolvedReportSession();
     if (!target) return;
     var md = Report.generateMarkdownReport(target, flatSteps, ProcessData.questionLibrary);
     var d = new Date();
@@ -266,7 +298,7 @@ Panel {
   }
 
   function exportPdfToFile() {
-    var target = viewingSession || Database.loadSession(activeSessionId);
+    var target = getResolvedReportSession();
     if (!target) return;
     var pdfData = PdfReport.generatePdf(target, flatSteps, ProcessData.questionLibrary);
     var d = new Date();
@@ -292,7 +324,7 @@ Panel {
   }
 
   function shareHighlightToX() {
-    var target = viewingSession || Database.loadSession(activeSessionId);
+    var target = getResolvedReportSession();
     if (!target) return;
     var url = Report.generateXIntentUrl(target);
     Qt.openUrlExternally(url);
@@ -628,7 +660,7 @@ Panel {
 
                   Text {
                     width: parent.width
-                    text: "• Start (Now 1): \"" + ((root.answers && root.answers[0]) ? root.answers[0] : "...") + "\""
+                    text: "• Start (Now 1): " + ((root.answers && root.answers[0]) ? root.answers[0] : "...")
                     color: root.foreground
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.caption - 1
@@ -637,7 +669,7 @@ Panel {
 
                   Text {
                     width: parent.width
-                    text: "• Now (Now 7): \"" + ((root.answers && root.answers[78]) ? root.answers[78] : "...") + "\""
+                    text: "• Now (Now 7): " + ((root.answers && root.answers[78]) ? root.answers[78] : "...")
                     color: root.foreground
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.caption - 1
@@ -646,7 +678,7 @@ Panel {
 
                   Text {
                     width: parent.width
-                    text: "• Comparison (Step 80): \"" + ((root.answers && root.answers[79]) ? root.answers[79] : "...") + "\""
+                    text: "• Comparison (Step 80): " + ((root.answers && root.answers[79]) ? root.answers[79] : "...")
                     color: "#c4b5fd"
                     font.family: root.fontFamily
                     font.pixelSize: Style.font.caption - 1
@@ -783,7 +815,7 @@ Panel {
                     width: parent.width
                     text: {
                       var lastAns = (root.answers && root.answers[root.flatSteps.length - 1]) ? root.answers[root.flatSteps.length - 1] : ((root.answers && (root.answers[80] || root.answers[79])) ? (root.answers[80] || root.answers[79]) : "");
-                      return lastAns ? ("\"" + lastAns + "\"") : "Breakthrough insight recorded.";
+                      return lastAns ? lastAns : "Breakthrough insight recorded.";
                     }
                     color: root.foreground
                     font.family: root.fontFamily
@@ -931,7 +963,7 @@ Panel {
 
                 Text {
                   width: parent.width
-                  text: "Initial: \"" + (modelData.now_start || "...") + "\""
+                  text: "Initial: " + (modelData.now_start || "...")
                   color: root.foreground
                   font.family: root.fontFamily
                   font.pixelSize: Style.font.bodySmall
@@ -942,7 +974,7 @@ Panel {
                 Text {
                   width: parent.width
                   visible: !!modelData.final_insight
-                  text: "Emergence: \"" + modelData.final_insight + "\""
+                  text: "Emergence: " + modelData.final_insight
                   color: root.goldColor
                   font.family: root.fontFamily
                   font.pixelSize: Style.font.caption
@@ -972,9 +1004,12 @@ Panel {
         // ----------------- 3. REPORT TAB -------------------------
         // =========================================================
         Column {
+          id: panelReportCol
           width: parent.width
           spacing: Style.space(12)
           visible: root.activeTab === "report"
+
+          property var targetSession: (visible && root.activeTab === "report") ? root.getResolvedReportSession() : null
 
           Text {
             text: "Session Review & Record"
@@ -995,19 +1030,11 @@ Panel {
             font.bold: true
           }
 
-          // Action Toolbar (2x2 responsive grid)
+          // Action Toolbar (3 clean export buttons)
           Grid {
             width: parent.width
             columns: 2
             spacing: Style.space(8)
-
-            Button {
-              width: (parent.width - Style.space(8)) / 2
-              text: "📋 Copy Markdown"
-              accent: root.goldColor
-              bordered: true
-              onClicked: root.copyReportText()
-            }
 
             Button {
               width: (parent.width - Style.space(8)) / 2
@@ -1026,7 +1053,7 @@ Panel {
             }
 
             Button {
-              width: (parent.width - Style.space(8)) / 2
+              width: parent.width
               text: "🐦 Share on X"
               accent: "#38bdf8"
               bordered: true
@@ -1059,8 +1086,8 @@ Panel {
               Text {
                 width: parent.width
                 text: {
-                  var t = root.viewingSession || Database.loadSession(root.activeSessionId);
-                  return (t && t.final_insight) ? ("\"" + t.final_insight + "\"") : (t && t.answers && t.answers[80] ? ("\"" + t.answers[80] + "\"") : "Complete the final question to harvest the emergent shift.");
+                  var t = panelReportCol.targetSession;
+                  return (t && t.final_insight) ? t.final_insight : (t && t.answers && t.answers[80] ? t.answers[80] : "Complete the final question to harvest the emergent shift.");
                 }
                 color: root.foreground
                 font.family: root.fontFamily
@@ -1126,7 +1153,7 @@ Panel {
                         font.bold: true
                       }
                       Text {
-                        property var s: root.viewingSession || Database.loadSession(root.activeSessionId)
+                        property var s: panelReportCol.targetSession
                         property int preVal: s ? (s.pre_clarity !== undefined ? s.pre_clarity : 50) : 50
                         property int postVal: s ? (s.post_clarity !== undefined ? s.post_clarity : 50) : 50
                         text: preVal + "% → " + postVal + "%"
@@ -1139,7 +1166,7 @@ Panel {
 
                     Rectangle {
                       anchors.verticalCenter: parent.verticalCenter
-                      property var s: root.viewingSession || Database.loadSession(root.activeSessionId)
+                      property var s: panelReportCol.targetSession
                       property int preVal: s ? (s.pre_clarity !== undefined ? s.pre_clarity : 50) : 50
                       property int postVal: s ? (s.post_clarity !== undefined ? s.post_clarity : 50) : 50
                       property int diff: postVal - preVal
@@ -1152,7 +1179,7 @@ Panel {
 
                       Text {
                         anchors.centerIn: parent
-                        property var s: root.viewingSession || Database.loadSession(root.activeSessionId)
+                        property var s: panelReportCol.targetSession
                         property int preVal: s ? (s.pre_clarity !== undefined ? s.pre_clarity : 50) : 50
                         property int postVal: s ? (s.post_clarity !== undefined ? s.post_clarity : 50) : 50
                         property int diff: postVal - preVal
@@ -1191,7 +1218,7 @@ Panel {
                         font.bold: true
                       }
                       Text {
-                        property var s: root.viewingSession || Database.loadSession(root.activeSessionId)
+                        property var s: panelReportCol.targetSession
                         property int preVal: s ? (s.pre_movement !== undefined ? s.pre_movement : (s.pre_focus || 50)) : 50
                         property int postVal: s ? (s.post_movement !== undefined ? s.post_movement : (s.post_focus || 50)) : 50
                         text: preVal + "% → " + postVal + "%"
@@ -1204,7 +1231,7 @@ Panel {
 
                     Rectangle {
                       anchors.verticalCenter: parent.verticalCenter
-                      property var s: root.viewingSession || Database.loadSession(root.activeSessionId)
+                      property var s: panelReportCol.targetSession
                       property int preVal: s ? (s.pre_movement !== undefined ? s.pre_movement : (s.pre_focus || 50)) : 50
                       property int postVal: s ? (s.post_movement !== undefined ? s.post_movement : (s.post_focus || 50)) : 50
                       property int diff: postVal - preVal
@@ -1217,7 +1244,7 @@ Panel {
 
                       Text {
                         anchors.centerIn: parent
-                        property var s: root.viewingSession || Database.loadSession(root.activeSessionId)
+                        property var s: panelReportCol.targetSession
                         property int preVal: s ? (s.pre_movement !== undefined ? s.pre_movement : (s.pre_focus || 50)) : 50
                         property int postVal: s ? (s.post_movement !== undefined ? s.post_movement : (s.post_focus || 50)) : 50
                         property int diff: postVal - preVal
@@ -1251,10 +1278,11 @@ Panel {
                 id: repText
                 width: parent.width
                 text: {
-                  var target = root.viewingSession || Database.loadSession(root.activeSessionId);
+                  var target = panelReportCol.targetSession;
                   return Report.generateMarkdownReport(target, root.flatSteps, ProcessData.questionLibrary);
                 }
                 color: root.foreground
+                textFormat: Text.MarkdownText
                 font.family: root.fontFamily
                 font.pixelSize: Style.font.caption
                 lineHeight: 1.3
@@ -1600,7 +1628,7 @@ Panel {
                 width: parent.width
                 text: {
                   var lastAns = (root.answers && root.answers[root.flatSteps.length - 1]) ? root.answers[root.flatSteps.length - 1] : ((root.answers && (root.answers[80] || root.answers[79])) ? (root.answers[80] || root.answers[79]) : "");
-                  return lastAns ? ("\"" + lastAns + "\"") : "Breakthrough insight recorded.";
+                  return lastAns ? lastAns : "Breakthrough insight recorded.";
                 }
                 color: root.foreground
                 font.family: root.fontFamily

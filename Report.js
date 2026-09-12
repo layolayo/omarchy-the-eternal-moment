@@ -136,7 +136,7 @@ function generateTweetText(session) {
         insight = insight.substring(0, 172) + "...";
     }
 
-    var text = "Process #4 Emergence:\n\"" + (insight || "The space between what I knew at the start and what I know now.") + "\"\n\n#EmergentKnowledge #Process4 #CleanLanguage";
+    var text = "Process #4 Emergence:\n" + (insight || "The space between what I knew at the start and what I know now.") + "\n\n#EmergentKnowledge #Process4 #CleanLanguage";
     return text;
 }
 

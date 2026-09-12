@@ -173,6 +173,38 @@ ApplicationWindow {
         }
     }
 
+    function getResolvedReportSession() {
+        if (viewingSession) return viewingSession;
+        var active = activeSessionId ? Database.loadSession(activeSessionId) : null;
+        var hasActiveAnswers = false;
+        if (active && active.answers && Array.isArray(active.answers)) {
+            for (var i = 0; i < active.answers.length; i++) {
+                if (active.answers[i] && String(active.answers[i]).trim().length > 0) {
+                    hasActiveAnswers = true;
+                    break;
+                }
+            }
+        }
+        if (hasActiveAnswers) {
+            return active;
+        }
+        var recents = (historicalSessions && historicalSessions.length > 0) ? historicalSessions : Database.listSessions(10);
+        if (recents && recents.length > 0) {
+            for (var h = 0; h < recents.length; h++) {
+                var cand = Database.loadSession(recents[h].id);
+                if (cand && cand.answers && Array.isArray(cand.answers)) {
+                    for (var j = 0; j < cand.answers.length; j++) {
+                        if (cand.answers[j] && String(cand.answers[j]).trim().length > 0) {
+                            return cand;
+                        }
+                    }
+                }
+            }
+            return Database.loadSession(recents[0].id) || active;
+        }
+        return active;
+    }
+
     function saveFinalMetrics() {
         if (!activeSessionId) return;
         var s = {
@@ -277,7 +309,7 @@ ApplicationWindow {
     }
 
     function copyReportToClipboard() {
-        var target = viewingSession || Database.loadSession(activeSessionId);
+        var target = getResolvedReportSession();
         if (!target) return;
         var md = Report.generateMarkdownReport(target, flatSteps, ProcessData.questionLibrary);
         executeShellCommand("printf '%s' " + escapeShell(md) + " | wl-copy || printf '%s' " + escapeShell(md) + " | xclip -selection clipboard");
@@ -317,7 +349,7 @@ ApplicationWindow {
     }
 
     function exportReportToFile() {
-        var target = viewingSession || Database.loadSession(activeSessionId);
+        var target = getResolvedReportSession();
         if (!target) return;
         var md = Report.generateMarkdownReport(target, flatSteps, ProcessData.questionLibrary);
         var d = new Date();
@@ -329,7 +361,7 @@ ApplicationWindow {
     }
 
     function exportPdfToFile() {
-        var target = viewingSession || Database.loadSession(activeSessionId);
+        var target = getResolvedReportSession();
         if (!target) return;
         var pdfData = PdfReport.generatePdf(target, flatSteps, ProcessData.questionLibrary);
         var d = new Date();
@@ -371,11 +403,11 @@ ApplicationWindow {
             sharePreviewPath = permanentPath;
             sharePreviewUrl = "file://" + tmpPath + "?v=" + Date.now();
 
-            var target = viewingSession || Database.loadSession(activeSessionId);
+            var target = getResolvedReportSession();
             var insight = (target && (target.final_insight || (target.answers && target.answers[80]))) ? (target.final_insight || target.answers[80]) : "";
             if (insight && insight.length > 160) insight = insight.substring(0, 157) + "...";
 
-            var insightPart = insight ? "\n\"" + insight + "\"\n\n" : "\n";
+            var insightPart = insight ? "\n" + insight + "\n\n" : "\n";
             shareCaption = "Process #4 Emergence:" + insightPart + "#Ekology #CleanLanguage #EmergentKnowledge #Process4";
 
             // Pre-load clipboard with image
@@ -1376,7 +1408,7 @@ ApplicationWindow {
 
                                                 Text {
                                                     width: parent.width
-                                                    text: "• Start (Now 1): \"" + ((answers && answers[0]) ? answers[0] : "...") + "\""
+                                                    text: "• Start (Now 1): " + ((answers && answers[0]) ? answers[0] : "...")
                                                     color: colForeground
                                                     font.pixelSize: 11
                                                     wrapMode: Text.WordWrap
@@ -1384,7 +1416,7 @@ ApplicationWindow {
 
                                                 Text {
                                                     width: parent.width
-                                                    text: "• Now (Now 7): \"" + ((answers && answers[78]) ? answers[78] : "...") + "\""
+                                                    text: "• Now (Now 7): " + ((answers && answers[78]) ? answers[78] : "...")
                                                     color: colForeground
                                                     font.pixelSize: 11
                                                     wrapMode: Text.WordWrap
@@ -1392,7 +1424,7 @@ ApplicationWindow {
 
                                                 Text {
                                                     width: parent.width
-                                                    text: "• Comparison (Step 80): \"" + ((answers && answers[79]) ? answers[79] : "...") + "\""
+                                                    text: "• Comparison (Step 80): " + ((answers && answers[79]) ? answers[79] : "...")
                                                     color: "#c4b5fd"
                                                     font.pixelSize: 11
                                                     font.italic: true
@@ -1583,7 +1615,7 @@ ApplicationWindow {
                                                 width: parent.width
                                                 text: {
                                                     var lastAns = (answers && answers[flatSteps.length - 1]) ? answers[flatSteps.length - 1] : ((answers && (answers[80] || answers[79])) ? (answers[80] || answers[79]) : "");
-                                                    return lastAns ? ("\"" + lastAns + "\"") : "Breakthrough insight recorded.";
+                                                    return lastAns ? lastAns : "Breakthrough insight recorded.";
                                                 }
                                                 color: colForeground
                                                 font.bold: true
@@ -1766,7 +1798,7 @@ ApplicationWindow {
 
                                         Text {
                                             Layout.fillWidth: true
-                                            text: "Initial Now: \"" + (modelData.now_start || "...") + "\""
+                                            text: "Initial Now: " + (modelData.now_start || "...")
                                             color: colForeground
                                             font.pixelSize: 14
                                             font.bold: true
@@ -1776,7 +1808,7 @@ ApplicationWindow {
                                         Text {
                                             Layout.fillWidth: true
                                             visible: !!modelData.final_insight
-                                            text: "Emergent Shift: \"" + modelData.final_insight + "\""
+                                            text: "Emergent Shift: " + modelData.final_insight
                                             color: colGold
                                             font.pixelSize: 12
                                             font.italic: true
@@ -1888,10 +1920,13 @@ ApplicationWindow {
             // 3. REPORT TAB (Structured Record & Export)
             // -------------------------------------------------------------
             ColumnLayout {
+                id: reportTabCol
                 anchors.fill: parent
                 anchors.margins: 40
                 spacing: 20
                 visible: activeTab === "report"
+
+                property var targetSession: (visible && activeTab === "report") ? getResolvedReportSession() : null
 
                 RowLayout {
                     Layout.fillWidth: true
@@ -1972,31 +2007,6 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     spacing: 10
 
-                    Rectangle {
-                        height: 36
-                        implicitWidth: copyBtnText.implicitWidth + 28
-                        radius: 6
-                        color: copyHover.containsMouse ? Qt.rgba(colGold.r, colGold.g, colGold.b, 0.25) : Qt.rgba(colGold.r, colGold.g, colGold.b, 0.15)
-                        border.width: 1.5
-                        border.color: colGold
-
-                        Text {
-                            id: copyBtnText
-                            anchors.centerIn: parent
-                            text: "📋 Copy Markdown"
-                            color: colGold
-                            font.bold: true
-                            font.pixelSize: 12
-                        }
-
-                        MouseArea {
-                            id: copyHover
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: copyReportToClipboard()
-                        }
-                    }
 
                     Rectangle {
                         height: 36
@@ -2111,8 +2121,8 @@ ApplicationWindow {
                         Text {
                             Layout.fillWidth: true
                             text: {
-                                var t = viewingSession || Database.loadSession(activeSessionId);
-                                return (t && t.final_insight) ? ("\"" + t.final_insight + "\"") : (t && t.answers && t.answers[80] ? ("\"" + t.answers[80] + "\"") : "Reflect on the final question to harvest your breakthrough.");
+                                var t = reportTabCol.targetSession;
+                                return (t && t.final_insight) ? t.final_insight : (t && t.answers && t.answers[80] ? t.answers[80] : "Reflect on the final question to harvest your breakthrough.");
                             }
                             color: colForeground
                             font.pixelSize: 16
@@ -2183,7 +2193,7 @@ ApplicationWindow {
                                             font.bold: true
                                         }
                                         Text {
-                                            property var sessionData: viewingSession || Database.loadSession(activeSessionId)
+                                            property var sessionData: reportTabCol.targetSession
                                             property int preVal: sessionData ? (sessionData.pre_clarity !== undefined ? sessionData.pre_clarity : 50) : 50
                                             property int postVal: sessionData ? (sessionData.post_clarity !== undefined ? sessionData.post_clarity : 50) : 50
                                             text: preVal + "% → " + postVal + "%"
@@ -2196,7 +2206,7 @@ ApplicationWindow {
                                     Item { Layout.fillWidth: true }
 
                                     Rectangle {
-                                        property var sessionData: viewingSession || Database.loadSession(activeSessionId)
+                                        property var sessionData: reportTabCol.targetSession
                                         property int preVal: sessionData ? (sessionData.pre_clarity !== undefined ? sessionData.pre_clarity : 50) : 50
                                         property int postVal: sessionData ? (sessionData.post_clarity !== undefined ? sessionData.post_clarity : 50) : 50
                                         property int diff: postVal - preVal
@@ -2210,7 +2220,7 @@ ApplicationWindow {
                                         Text {
                                             id: clarityDiffText
                                             anchors.centerIn: parent
-                                            property var sessionData: viewingSession || Database.loadSession(activeSessionId)
+                                            property var sessionData: reportTabCol.targetSession
                                             property int preVal: sessionData ? (sessionData.pre_clarity !== undefined ? sessionData.pre_clarity : 50) : 50
                                             property int postVal: sessionData ? (sessionData.post_clarity !== undefined ? sessionData.post_clarity : 50) : 50
                                             property int diff: postVal - preVal
@@ -2246,7 +2256,7 @@ ApplicationWindow {
                                             font.bold: true
                                         }
                                         Text {
-                                            property var sessionData: viewingSession || Database.loadSession(activeSessionId)
+                                            property var sessionData: reportTabCol.targetSession
                                             property int preVal: sessionData ? (sessionData.pre_movement !== undefined ? sessionData.pre_movement : (sessionData.pre_focus || 50)) : 50
                                             property int postVal: sessionData ? (sessionData.post_movement !== undefined ? sessionData.post_movement : (sessionData.post_focus || 50)) : 50
                                             text: preVal + "% → " + postVal + "%"
@@ -2259,7 +2269,7 @@ ApplicationWindow {
                                     Item { Layout.fillWidth: true }
 
                                     Rectangle {
-                                        property var sessionData: viewingSession || Database.loadSession(activeSessionId)
+                                        property var sessionData: reportTabCol.targetSession
                                         property int preVal: sessionData ? (sessionData.pre_movement !== undefined ? sessionData.pre_movement : (sessionData.pre_focus || 50)) : 50
                                         property int postVal: sessionData ? (sessionData.post_movement !== undefined ? sessionData.post_movement : (sessionData.post_focus || 50)) : 50
                                         property int diff: postVal - preVal
@@ -2273,7 +2283,7 @@ ApplicationWindow {
                                         Text {
                                             id: movementDiffText
                                             anchors.centerIn: parent
-                                            property var sessionData: viewingSession || Database.loadSession(activeSessionId)
+                                            property var sessionData: reportTabCol.targetSession
                                             property int preVal: sessionData ? (sessionData.pre_movement !== undefined ? sessionData.pre_movement : (sessionData.pre_focus || 50)) : 50
                                             property int postVal: sessionData ? (sessionData.post_movement !== undefined ? sessionData.post_movement : (sessionData.post_focus || 50)) : 50
                                             property int diff: postVal - preVal
@@ -2310,12 +2320,12 @@ ApplicationWindow {
                             id: reportText
                             width: reportScrollView.availableWidth
                             text: {
-                                var target = viewingSession || Database.loadSession(activeSessionId);
+                                var target = reportTabCol.targetSession;
                                 return Report.generateMarkdownReport(target, flatSteps, ProcessData.questionLibrary);
                             }
                             color: colForeground
-                            font.pixelSize: 13
-                            font.family: "monospace"
+                            textFormat: Text.MarkdownText
+                            font.pixelSize: 14
                             lineHeight: 1.4
                             wrapMode: Text.WordWrap
                         }
@@ -3025,7 +3035,7 @@ ApplicationWindow {
                             Layout.fillWidth: true
                             text: {
                                 var lastAns = (answers && answers[flatSteps.length - 1]) ? answers[flatSteps.length - 1] : ((answers && (answers[80] || answers[79])) ? (answers[80] || answers[79]) : "");
-                                return lastAns ? ("\"" + lastAns + "\"") : "Breakthrough insight recorded.";
+                                return lastAns ? lastAns : "Breakthrough insight recorded.";
                             }
                             color: colForeground
                             font.bold: true

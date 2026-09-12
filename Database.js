@@ -224,6 +224,16 @@ function listSessions(limit) {
     return list;
 }
 
+function getRecentSessions(limit) {
+    var summaries = listSessions(limit || 10);
+    var full = [];
+    for (var i = 0; i < summaries.length; i++) {
+        var sess = loadSession(summaries[i].id);
+        if (sess) full.push(sess);
+    }
+    return full;
+}
+
 function loadSession(id) {
     var db = getDb();
     var session = null;

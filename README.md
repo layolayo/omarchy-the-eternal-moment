@@ -23,22 +23,26 @@ Process #4 is not a quick status indicator—it is an expansive journey of consc
 - **🌌 The Chamber (Spacious Guided Session)**:
   - Expansive typographic layout optimized for contemplation.
   - Dynamic question contextualization (auto-inserts previous past and future phrases into comparison inquiries).
-  - Pre-session and post-session focus and clarity calibration sliders.
+  - Pre-session and post-session focus, clarity, and movement calibration sliders with delta metrics (+% / -%).
   - Rapid keyboard flow: `Ctrl+Enter` or `Shift+Enter` to reflect and advance.
   - Press `F11` anytime to toggle full-screen immersion.
-- **💾 Streamlined Local SQLite Database**:
+- **🌀 Interactive 3D Emergent Spiral**:
+  - Live spatial visualization of the 81 steps expanding in real-time as your journey unfolds.
+  - Interactive camera control: drag to rotate, scroll wheel to zoom, and pan through your timeline of thoughts.
+- **💾 100% Private & Offline SQLite Store**:
   - Powered by native `QtQuick.LocalStorage` (embedded SQLite3).
-  - Zero external servers, Python daemons, or background containers.
-  - Crash-proof auto-saving: close the app mid-session and resume exactly where you left off.
+  - Zero telemetry, zero cloud tracking, zero external server dependencies.
+  - Crash-proof auto-saving: close the app anytime and resume seamlessly.
 - **📜 Personal Development Archive**:
-  - Browse your entire history of past sessions with timestamps, initial states, and emergent shifts.
-  - Track how your awareness, clarity, and themes evolve over time.
-  - Re-read past breakthrough transcripts or resume in-progress journeys.
-- **📋 Structured Reporting & Social Sharing**:
-  - `📋 Copy Markdown`: One-click copy for Obsidian, Notion, or personal notebooks.
-  - `💾 Save to Docs`: Exports a clean timestamped Markdown report to `~/Documents/`.
-  - `📄 Export PDF`: Generates a self-contained, publication-grade vector PDF document to `~/Documents/` and opens in your default PDF viewer.
-  - `🐦 Share on X`: Direct Web Intent opens your default browser into the X composer with a curated highlight quote and `#EmergentKnowledge #Process4` tags.
+  - Browse your history of completed sessions with timestamps, initial states, and emergent shifts.
+  - Track how your clarity, movement flow, and emergent themes evolve over time.
+  - Re-read past breakthrough transcripts or resume unfinished sessions.
+- **📄 Publication-Grade PDF & Markdown Reports**:
+  - `📄 Export PDF`: Generates a self-contained, publication-grade vector PDF document to `~/Documents/Process4_EternalMoment_*.pdf` with zero external dependencies (pure JavaScript PDF 1.4 vector generator—no headless browsers, pandoc, or Python engines required). Automatically opens in your system PDF viewer.
+  - `💾 Save to Docs`: Exports a clean, timestamped Markdown report (`~/Documents/Process4_EternalMoment_*.md`) formatted for Obsidian, Logseq, Notion, or personal archives.
+  - **Visual In-App Review**: View your complete session record rendered directly with rich proportional typography, formatted headings, and metric delta badges.
+- **🐦 Curated Reflection Sharing**:
+  - `🐦 Share on X`: Automatically copies your 3D spiral snapshot to clipboard and opens the X composer with your emergent insight and `#EmergentKnowledge #Process4 #CleanLanguage` tags.
 - **📖 Comprehensive Built-in Instruction Manual & Ekology Reference**:
   - Full documentation of the 6-Set cycle and the Power of Six.
   - Clean Language definitions for *Where*, *Might*, and *Compare*.
