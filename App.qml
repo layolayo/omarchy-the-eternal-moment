@@ -7,6 +7,7 @@ import "ProcessData.js" as ProcessData
 import "Database.js" as Database
 import "Report.js" as Report
 import "SpiralEngine.js" as SpiralEngine
+import "PdfReport.js" as PdfReport
 
 ApplicationWindow {
     id: appWindow
@@ -325,6 +326,20 @@ ApplicationWindow {
         var docsDir = getDocumentsDirectory();
         executeShellCommand("mkdir -p " + escapeShell(docsDir) + " && printf '%s' " + escapeShell(md) + " > " + escapeShell(docsDir + "/" + filename));
         showCanvasToast("Report saved to " + filename);
+    }
+
+    function exportPdfToFile() {
+        var target = viewingSession || Database.loadSession(activeSessionId);
+        if (!target) return;
+        var pdfData = PdfReport.generatePdf(target, flatSteps, ProcessData.questionLibrary);
+        var d = new Date();
+        var ts = d.getFullYear() + "" + String(d.getMonth() + 1).padStart(2, '0') + "" + String(d.getDate()).padStart(2, '0') + "_" + String(d.getHours()).padStart(2, '0') + "" + String(d.getMinutes()).padStart(2, '0');
+        var filename = "Process4_EternalMoment_" + ts + ".pdf";
+        var docsDir = getDocumentsDirectory();
+        var targetPath = docsDir + "/" + filename;
+        executeShellCommand("mkdir -p " + escapeShell(docsDir) + " && printf '%s' " + escapeShell(pdfData) + " > " + escapeShell(targetPath));
+        showCanvasToast("PDF saved to " + filename);
+        Qt.openUrlExternally("file://" + targetPath);
     }
 
     function captureSpiralSnapshot(callback) {
@@ -1984,6 +1999,29 @@ ApplicationWindow {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: exportReportToFile()
+                            }
+                        }
+
+                        Rectangle {
+                            height: 38
+                            width: 130
+                            radius: 6
+                            color: Qt.rgba(colPast.r, colPast.g, colPast.b, 0.15)
+                            border.width: 1.5
+                            border.color: colPast
+
+                            Text {
+                                anchors.centerIn: parent
+                                text: "📄 Export PDF"
+                                color: colPast
+                                font.bold: true
+                                font.pixelSize: 12
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: exportPdfToFile()
                             }
                         }
 

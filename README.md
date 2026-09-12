@@ -36,7 +36,8 @@ Process #4 is not a quick status indicator—it is an expansive journey of consc
   - Re-read past breakthrough transcripts or resume in-progress journeys.
 - **📋 Structured Reporting & Social Sharing**:
   - `📋 Copy Markdown`: One-click copy for Obsidian, Notion, or personal notebooks.
-  - `💾 Save to Docs`: Exports a clean timestamped report to `~/Documents/`.
+  - `💾 Save to Docs`: Exports a clean timestamped Markdown report to `~/Documents/`.
+  - `📄 Export PDF`: Generates a self-contained, publication-grade vector PDF document to `~/Documents/` and opens in your default PDF viewer.
   - `🐦 Share on X`: Direct Web Intent opens your default browser into the X composer with a curated highlight quote and `#EmergentKnowledge #Process4` tags.
 - **📖 Comprehensive Built-in Instruction Manual & Ekology Reference**:
   - Full documentation of the 6-Set cycle and the Power of Six.

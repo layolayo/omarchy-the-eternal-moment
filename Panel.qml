@@ -9,6 +9,7 @@ import qs.Ui
 import "ProcessData.js" as ProcessData
 import "Database.js" as Database
 import "Report.js" as Report
+import "PdfReport.js" as PdfReport
 
 Panel {
   id: root
@@ -262,6 +263,32 @@ Panel {
     var cmd = "export PATH=/usr/bin:/bin; mkdir -p " + escapeShell(docsLoc) + " && printf '%s' " + escapeShell(md) + " > " + escapeShell(targetPath);
     Quickshell.execDetached(["/bin/sh", "-c", cmd]);
     copyStatusMessage = "Saved to " + targetPath;
+  }
+
+  function exportPdfToFile() {
+    var target = viewingSession || Database.loadSession(activeSessionId);
+    if (!target) return;
+    var pdfData = PdfReport.generatePdf(target, flatSteps, ProcessData.questionLibrary);
+    var d = new Date();
+    var ts = d.getFullYear() + "" + String(d.getMonth() + 1).padStart(2, '0') + "" + String(d.getDate()).padStart(2, '0') + "_" + String(d.getHours()).padStart(2, '0') + "" + String(d.getMinutes()).padStart(2, '0');
+    var filename = "Process4_EternalMoment_" + ts + ".pdf";
+    var docsLoc = "";
+    try {
+      docsLoc = decodeURIComponent(String(StandardPaths.writableLocation(StandardPaths.DocumentsLocation)).replace(/^file:\/\//, ""));
+    } catch (e) {}
+    if (!docsLoc || docsLoc === "undefined" || docsLoc === "null") {
+      try {
+        docsLoc = decodeURIComponent(String(StandardPaths.writableLocation(StandardPaths.HomeLocation)).replace(/^file:\/\//, "")) + "/Documents";
+      } catch (e2) {}
+    }
+    if (!docsLoc || docsLoc === "undefined" || docsLoc === "null" || docsLoc === "/Documents") {
+      docsLoc = "/tmp";
+    }
+    var targetPath = docsLoc + "/" + filename;
+    var cmd = "export PATH=/usr/bin:/bin; mkdir -p " + escapeShell(docsLoc) + " && printf '%s' " + escapeShell(pdfData) + " > " + escapeShell(targetPath);
+    Quickshell.execDetached(["/bin/sh", "-c", cmd]);
+    copyStatusMessage = "Saved to " + targetPath;
+    Qt.openUrlExternally("file://" + targetPath);
   }
 
   function shareHighlightToX() {
@@ -974,7 +1001,7 @@ Panel {
             spacing: Style.space(8)
 
             Button {
-              width: (parent.width - Style.space(16)) / 3
+              width: (parent.width - Style.space(24)) / 4
               text: "📋 Copy Markdown"
               accent: root.goldColor
               bordered: true
@@ -982,7 +1009,7 @@ Panel {
             }
 
             Button {
-              width: (parent.width - Style.space(16)) / 3
+              width: (parent.width - Style.space(24)) / 4
               text: "💾 Save to Docs"
               accent: root.cyanColor
               bordered: true
@@ -990,7 +1017,15 @@ Panel {
             }
 
             Button {
-              width: (parent.width - Style.space(16)) / 3
+              width: (parent.width - Style.space(24)) / 4
+              text: "📄 Export PDF"
+              accent: root.pastColor
+              bordered: true
+              onClicked: root.exportPdfToFile()
+            }
+
+            Button {
+              width: (parent.width - Style.space(24)) / 4
               text: "🐦 Share on X"
               accent: "#38bdf8"
               bordered: true
