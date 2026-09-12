@@ -395,7 +395,17 @@ ApplicationWindow {
                 loc = decodeURIComponent(String(StandardPaths.writableLocation(StandardPaths.HomeLocation)).replace(/^file:\/\//, ""));
             } catch (e3) {}
         }
-        return loc + "/TheEternalMoment";
+        if (!loc || loc === "undefined" || loc === "null") return "";
+        return loc;
+    }
+
+    function getTempDirectory() {
+        var loc = "";
+        try {
+            loc = decodeURIComponent(String(StandardPaths.writableLocation(StandardPaths.TempLocation)).replace(/^file:\/\//, ""));
+        } catch (e) {}
+        if (!loc || loc === "undefined" || loc === "null") return "";
+        return loc;
     }
 
     function getDocumentsDirectory() {
@@ -443,18 +453,15 @@ ApplicationWindow {
     }
 
     function captureSpiralSnapshot(callback) {
-        var dir = getPicturesDirectory();
-        if (typeof Quickshell !== "undefined" && typeof Quickshell.execDetached === "function") {
-            try {
-                Quickshell.execDetached(["/usr/bin/mkdir", "-p", dir]);
-            } catch (e) {}
-        }
+        var pictures = getPicturesDirectory();
+        var tmpDir = getTempDirectory();
+        if (!pictures || !tmpDir) return;
 
         var d = new Date();
         var dateStr = d.getFullYear() + "" + String(d.getMonth() + 1).padStart(2, '0') + "" + String(d.getDate()).padStart(2, '0') + "_" + String(d.getHours()).padStart(2, '0') + "" + String(d.getMinutes()).padStart(2, '0') + "" + String(d.getSeconds()).padStart(2, '0');
         var filename = "eternity-" + dateStr + ".png";
-        var permanentPath = dir + "/" + filename;
-        var tmpPath = dir + "/.spiral_share_" + Date.now() + ".png";
+        var permanentPath = pictures + "/" + filename;
+        var tmpPath = tmpDir + "/eternal_spiral_" + Date.now() + ".png";
 
         spiralCanvas.grabToImage(function(result) {
             result.saveToFile(tmpPath);

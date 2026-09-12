@@ -77,15 +77,14 @@ omarchy plugin remove io.github.layolayo.eternal-moment
 ### 1. Application Launcher (Super Key)
 Search for **The Eternal Moment** in your Omarchy application menu (Rofi, Walker, or Omarchy menu).
 
-### 2. Command Line / Direct Execution
-Run directly via the included launcher script:
-```bash
-~/.config/omarchy/plugins/io.github.layolayo.eternal-moment/launch.sh
-```
-
-### 3. Summon via Omarchy Shell IPC
+### 2. Summon via Omarchy Shell IPC
 ```bash
 omarchy-shell shell summon io.github.layolayo.eternal-moment
+```
+
+### 3. Direct runtime (optional)
+```bash
+/usr/bin/quickshell -p ~/.config/omarchy/plugins/io.github.layolayo.eternal-moment/App.qml
 ```
 
 ---
