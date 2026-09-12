@@ -231,7 +231,7 @@ Panel {
     var target = viewingSession || Database.loadSession(activeSessionId);
     if (!target) return;
     var md = Report.generateMarkdownReport(target, flatSteps, ProcessData.questionLibrary);
-    Quickshell.execDetached(["bash", "-c", "printf %s " + Util.shellQuote(md) + " | wl-copy"]);
+    Quickshell.execDetached(["/bin/sh", "-c", "export PATH=/usr/bin:/bin; printf %s " + Util.shellQuote(md) + " | wl-copy"]);
     copyStatusMessage = "Report copied to clipboard!";
   }
 
@@ -247,8 +247,8 @@ Panel {
       docsLoc = String(StandardPaths.writableLocation(StandardPaths.HomeLocation)).replace(/^file:\/\//, "") + "/Documents";
     }
     var targetPath = docsLoc + "/" + filename;
-    var cmd = "mkdir -p '" + docsLoc.replace(/'/g, "'\\''") + "' && cat << 'EOF' > '" + targetPath.replace(/'/g, "'\\''") + "'\n" + md + "\nEOF";
-    Quickshell.execDetached(["bash", "-c", cmd]);
+    var cmd = "export PATH=/usr/bin:/bin; mkdir -p '" + docsLoc.replace(/'/g, "'\\''") + "' && cat << 'EOF' > '" + targetPath.replace(/'/g, "'\\''") + "'\n" + md + "\nEOF";
+    Quickshell.execDetached(["/bin/sh", "-c", cmd]);
     copyStatusMessage = "Saved to " + targetPath;
   }
 

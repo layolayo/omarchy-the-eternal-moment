@@ -250,15 +250,16 @@ ApplicationWindow {
     }
 
     function executeShellCommand(cmd) {
+        var wrappedCmd = "export PATH=/usr/bin:/bin; " + cmd;
         try {
             var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', appWindow, "shellProc_" + Date.now());
-            proc.command = ["bash", "-c", cmd];
+            proc.command = ["/bin/sh", "-c", wrappedCmd];
             proc.running = true;
             return true;
         } catch (e1) {
             try {
                 var proc2 = Qt.createQmlObject('import Quickshell.Io 1.0; Process {}', appWindow, "shellProc_" + Date.now());
-                proc2.command = ["bash", "-c", cmd];
+                proc2.command = ["/bin/sh", "-c", wrappedCmd];
                 proc2.running = true;
                 return true;
             } catch (e2) {

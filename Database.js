@@ -6,15 +6,52 @@ var DB_VERSION = "1.0";
 var DB_DESCRIPTION = "The Eternal Moment Session Store";
 var DB_SIZE = 10000000;
 
+// Strict bounds & cardinality ceilings to protect memory and UI responsiveness
+var MAX_SESSIONS_LIST = 100;       // Max rows returned by listSessions
+var MAX_ANSWER_LEN = 2000;         // Max characters per question response
+var MAX_FEEDBACK_LEN = 4000;       // Max characters for user reflections
+var MAX_TAG_LEN = 50;              // Max characters per tag
+var MAX_TAGS_COUNT = 20;           // Max tags per session
+var MAX_ANSWERS_COUNT = 85;        // Process #4 consists of 81 steps total
+var MAX_STRING_COL_LEN = 500;      // Max characters for now_start / final_insight summary columns
+
 function getDb() {
     return LS.LocalStorage.openDatabaseSync(DB_NAME, DB_VERSION, DB_DESCRIPTION, DB_SIZE);
+}
+
+function sanitizeString(str, maxLen) {
+    if (str === undefined || str === null) return "";
+    var s = String(str);
+    return s.length > maxLen ? s.substring(0, maxLen) : s;
+}
+
+function sanitizeAnswers(answers) {
+    if (!answers || !Array.isArray(answers)) return [];
+    var safe = [];
+    var count = Math.min(answers.length, MAX_ANSWERS_COUNT);
+    for (var i = 0; i < count; i++) {
+        safe.push(sanitizeString(answers[i], MAX_ANSWER_LEN));
+    }
+    return safe;
+}
+
+function sanitizeTags(tags) {
+    if (!tags || !Array.isArray(tags)) return [];
+    var safe = [];
+    var count = Math.min(tags.length, MAX_TAGS_COUNT);
+    for (var i = 0; i < count; i++) {
+        var t = sanitizeString(tags[i], MAX_TAG_LEN).trim();
+        if (t.length > 0) safe.push(t);
+    }
+    return safe;
 }
 
 function normalizePct(val) {
     if (val === undefined || val === null) return 50;
     val = Number(val);
+    if (isNaN(val)) return 50;
     if (val <= 10 && val > 0) return Math.round(val * 10);
-    return Math.round(val);
+    return Math.max(0, Math.min(100, Math.round(val)));
 }
 
 function initDb() {
@@ -76,21 +113,28 @@ function saveSession(session) {
     var preClar = normalizePct(session.pre_clarity !== undefined ? session.pre_clarity : 50);
     var postClar = normalizePct(session.post_clarity !== undefined ? session.post_clarity : 50);
 
+    // Enforce strict field ceilings before saving
+    var safeAnswers = sanitizeAnswers(session.answers);
+    var safeTags = sanitizeTags(session.tags);
+    var answersJson = JSON.stringify(safeAnswers);
+    var tagsJson = JSON.stringify(safeTags);
+    var nowStart = sanitizeString(safeAnswers[0] || session.now_start, MAX_STRING_COL_LEN);
+    var finalInsight = sanitizeString(session.final_insight || (safeAnswers[80] || safeAnswers[79] || ""), MAX_STRING_COL_LEN);
+    var feedback = sanitizeString(session.feedback, MAX_FEEDBACK_LEN);
+    var uuid = sanitizeString(session.uuid, 64);
+    var status = (session.status === 'completed') ? 'completed' : 'in_progress';
+    var currentStep = Math.max(0, Math.min(MAX_ANSWERS_COUNT, Number(session.current_step) || 0));
+
     db.transaction(function(tx) {
-        if (!recordId && session.uuid) {
-            var existing = tx.executeSql("SELECT id FROM sessions WHERE uuid = ?", [session.uuid]);
+        if (!recordId && uuid) {
+            var existing = tx.executeSql("SELECT id FROM sessions WHERE uuid = ? LIMIT 1", [uuid]);
             if (existing && existing.rows && existing.rows.length > 0) {
                 recordId = existing.rows.item(0).id;
             }
         }
 
         if (!recordId) {
-            var uuid = session.uuid || generateUUID();
-            var answersJson = JSON.stringify(session.answers || []);
-            var tagsJson = JSON.stringify(session.tags || []);
-            var nowStart = session.answers && session.answers[0] ? session.answers[0] : "";
-            var finalInsight = session.final_insight || "";
-
+            uuid = uuid || generateUUID();
             var res = tx.executeSql(`
                 INSERT INTO sessions (
                     uuid, created_at, updated_at, status, current_step,
@@ -99,18 +143,13 @@ function saveSession(session) {
                     answers_json, tags_json, feedback
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
-                uuid, nowIso, nowIso, session.status || 'in_progress', session.current_step || 0,
+                uuid, nowIso, nowIso, status, currentStep,
                 nowStart, finalInsight, preClar, preMov,
                 postClar, postMov, preMov, postMov,
-                answersJson, tagsJson, session.feedback || ""
+                answersJson, tagsJson, feedback
             ]);
             recordId = res.insertId;
         } else {
-            var answersJson = JSON.stringify(session.answers || []);
-            var tagsJson = JSON.stringify(session.tags || []);
-            var nowStart = session.answers && session.answers[0] ? session.answers[0] : "";
-            var finalInsight = session.final_insight || (session.answers && (session.answers[80] || session.answers[79]) ? (session.answers[80] || session.answers[79]) : "");
-
             tx.executeSql(`
                 UPDATE sessions SET
                     updated_at = ?,
@@ -129,10 +168,10 @@ function saveSession(session) {
                     feedback = ?
                 WHERE id = ?
             `, [
-                nowIso, session.status || 'in_progress', session.current_step || 0,
+                nowIso, status, currentStep,
                 nowStart, finalInsight, preClar, preMov,
                 postClar, postMov, preMov, postMov,
-                answersJson, tagsJson, session.feedback || "",
+                answersJson, tagsJson, feedback,
                 recordId
             ]);
         }
@@ -141,7 +180,8 @@ function saveSession(session) {
     return recordId;
 }
 
-function listSessions() {
+function listSessions(limit) {
+    var maxRows = (limit && typeof limit === "number" && limit > 0) ? Math.min(limit, MAX_SESSIONS_LIST) : MAX_SESSIONS_LIST;
     var db = getDb();
     var list = [];
     db.transaction(function(tx) {
@@ -149,24 +189,28 @@ function listSessions() {
             SELECT id, uuid, created_at, updated_at, status, current_step, now_start, final_insight, pre_clarity, pre_focus, post_clarity, post_focus, pre_movement, post_movement, tags_json
             FROM sessions
             ORDER BY updated_at DESC
-        `);
+            LIMIT ?
+        `, [maxRows]);
         for (var i = 0; i < rs.rows.length; i++) {
             var item = rs.rows.item(i);
             var tags = [];
-            try { tags = JSON.parse(item.tags_json || "[]"); } catch (e) {}
+            try {
+                var rawTags = JSON.parse(item.tags_json || "[]");
+                tags = sanitizeTags(rawTags);
+            } catch (e) {}
             var pClar = normalizePct(item.pre_clarity);
             var poClar = normalizePct(item.post_clarity);
             var pMov = normalizePct(item.pre_movement !== null && item.pre_movement !== undefined ? item.pre_movement : item.pre_focus);
             var poMov = normalizePct(item.post_movement !== null && item.post_movement !== undefined ? item.post_movement : item.post_focus);
             list.push({
                 id: item.id,
-                uuid: item.uuid,
-                created_at: item.created_at,
-                updated_at: item.updated_at,
-                status: item.status,
-                current_step: item.current_step,
-                now_start: item.now_start || "Untitled Session",
-                final_insight: item.final_insight || "",
+                uuid: sanitizeString(item.uuid, 64),
+                created_at: sanitizeString(item.created_at, 40),
+                updated_at: sanitizeString(item.updated_at, 40),
+                status: (item.status === 'completed') ? 'completed' : 'in_progress',
+                current_step: Math.max(0, Math.min(MAX_ANSWERS_COUNT, Number(item.current_step) || 0)),
+                now_start: sanitizeString(item.now_start || "Untitled Session", MAX_STRING_COL_LEN),
+                final_insight: sanitizeString(item.final_insight || "", MAX_STRING_COL_LEN),
                 pre_clarity: pClar,
                 pre_focus: pMov,
                 pre_movement: pMov,
@@ -184,26 +228,32 @@ function loadSession(id) {
     var db = getDb();
     var session = null;
     db.transaction(function(tx) {
-        var rs = tx.executeSql(`SELECT * FROM sessions WHERE id = ?`, [id]);
+        var rs = tx.executeSql(`SELECT * FROM sessions WHERE id = ? LIMIT 1`, [id]);
         if (rs.rows.length > 0) {
             var row = rs.rows.item(0);
             var answers = [];
             var tags = [];
-            try { answers = JSON.parse(row.answers_json || "[]"); } catch (e) {}
-            try { tags = JSON.parse(row.tags_json || "[]"); } catch (e) {}
+            try {
+                var rawAnswers = JSON.parse(row.answers_json || "[]");
+                answers = sanitizeAnswers(rawAnswers);
+            } catch (e) {}
+            try {
+                var rawTags = JSON.parse(row.tags_json || "[]");
+                tags = sanitizeTags(rawTags);
+            } catch (e) {}
             var pClar = normalizePct(row.pre_clarity);
             var poClar = normalizePct(row.post_clarity);
             var pMov = normalizePct(row.pre_movement !== null && row.pre_movement !== undefined ? row.pre_movement : row.pre_focus);
             var poMov = normalizePct(row.post_movement !== null && row.post_movement !== undefined ? row.post_movement : row.post_focus);
             session = {
                 id: row.id,
-                uuid: row.uuid,
-                created_at: row.created_at,
-                updated_at: row.updated_at,
-                status: row.status,
-                current_step: row.current_step,
-                now_start: row.now_start,
-                final_insight: row.final_insight,
+                uuid: sanitizeString(row.uuid, 64),
+                created_at: sanitizeString(row.created_at, 40),
+                updated_at: sanitizeString(row.updated_at, 40),
+                status: (row.status === 'completed') ? 'completed' : 'in_progress',
+                current_step: Math.max(0, Math.min(MAX_ANSWERS_COUNT, Number(row.current_step) || 0)),
+                now_start: sanitizeString(row.now_start, MAX_STRING_COL_LEN),
+                final_insight: sanitizeString(row.final_insight, MAX_STRING_COL_LEN),
                 pre_clarity: pClar,
                 pre_focus: pMov,
                 pre_movement: pMov,
@@ -212,7 +262,7 @@ function loadSession(id) {
                 post_movement: poMov,
                 answers: answers,
                 tags: tags,
-                feedback: row.feedback || ""
+                feedback: sanitizeString(row.feedback, MAX_FEEDBACK_LEN)
             };
         }
     });

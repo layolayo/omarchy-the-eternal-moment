@@ -1,7 +1,10 @@
-#!/bin/bash
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if command -v quickshell >/dev/null 2>&1; then
-    exec quickshell -p "$DIR/App.qml" "$@"
+#!/bin/sh
+set -eu
+export PATH="/usr/bin:/bin"
+PLUGIN_DIR="$HOME/.config/omarchy/plugins/io.github.layolayo.eternal-moment"
+if [ -x "$PLUGIN_DIR/launch.sh" ]; then
+    exec "$PLUGIN_DIR/launch.sh" "$@"
 else
-    exec qml6 "$DIR/App.qml" "$@"
+    echo "Error: The Eternal Moment plugin not found at $PLUGIN_DIR" >&2
+    exit 1
 fi
