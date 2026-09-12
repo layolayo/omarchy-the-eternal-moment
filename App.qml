@@ -252,13 +252,13 @@ ApplicationWindow {
     function executeShellCommand(cmd) {
         var wrappedCmd = "export PATH=/usr/bin:/bin; " + cmd;
         try {
-            var proc = Qt.createQmlObject('import Quickshell.Io; Process {}', appWindow, "shellProc_" + Date.now());
+            var proc = Qt.createQmlObject('import Quickshell.Io; Process { onRunningChanged: if (!running) destroy() }', appWindow, "shellProc_" + Date.now());
             proc.command = ["/bin/sh", "-c", wrappedCmd];
             proc.running = true;
             return true;
         } catch (e1) {
             try {
-                var proc2 = Qt.createQmlObject('import Quickshell.Io 1.0; Process {}', appWindow, "shellProc_" + Date.now());
+                var proc2 = Qt.createQmlObject('import Quickshell.Io 1.0; Process { onRunningChanged: if (!running) destroy() }', appWindow, "shellProc_" + Date.now());
                 proc2.command = ["/bin/sh", "-c", wrappedCmd];
                 proc2.running = true;
                 return true;
@@ -340,12 +340,11 @@ ApplicationWindow {
             tmpLoc = decodeURIComponent(String(StandardPaths.writableLocation(StandardPaths.TempLocation)).replace(/^file:\/\//, ""));
         } catch (e) {}
         if (!tmpLoc || tmpLoc === "undefined" || tmpLoc === "null") tmpLoc = "/tmp";
-        var tmpPath = tmpLoc + "/eternal_spiral_share.png";
+        var tmpPath = tmpLoc + "/eternal_spiral_share_" + Date.now() + ".png";
 
         spiralCanvas.grabToImage(function(result) {
             result.saveToFile(tmpPath);
             result.saveToFile(permanentPath);
-            executeShellCommand("mkdir -p " + escapeShell(dir) + " && cp -f " + escapeShell(tmpPath) + " " + escapeShell(permanentPath));
             if (callback) {
                 callback(tmpPath, permanentPath, filename);
             }
