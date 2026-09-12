@@ -268,7 +268,8 @@ Panel {
     var target = getResolvedReportSession();
     if (!target) return;
     var md = Report.generateMarkdownReport(target, flatSteps, ProcessData.questionLibrary);
-    Quickshell.execDetached(["/bin/sh", "-c", "export PATH=/usr/bin:/bin; printf '%s' " + escapeShell(md) + " | wl-copy"]);
+    // Direct argv invocation with trusted absolute path (zero shell pipeline)
+    Quickshell.execDetached(["/usr/bin/wl-copy", "--", md]);
     copyStatusMessage = "Report copied to clipboard!";
   }
 
@@ -292,7 +293,7 @@ Panel {
       docsLoc = "/tmp";
     }
     var targetPath = docsLoc + "/" + filename;
-    var cmd = "export PATH=/usr/bin:/bin; mkdir -p " + escapeShell(docsLoc) + " && printf '%s' " + escapeShell(md) + " > " + escapeShell(targetPath);
+    var cmd = "export PATH=/usr/bin:/bin; /usr/bin/mkdir -p " + escapeShell(docsLoc) + " && /usr/bin/printf '%s' " + escapeShell(md) + " > " + escapeShell(targetPath);
     Quickshell.execDetached(["/bin/sh", "-c", cmd]);
     copyStatusMessage = "Saved to " + targetPath;
   }
@@ -317,7 +318,7 @@ Panel {
       docsLoc = "/tmp";
     }
     var targetPath = docsLoc + "/" + filename;
-    var cmd = "export PATH=/usr/bin:/bin; mkdir -p " + escapeShell(docsLoc) + " && printf '%s' " + escapeShell(pdfData) + " > " + escapeShell(targetPath);
+    var cmd = "export PATH=/usr/bin:/bin; /usr/bin/mkdir -p " + escapeShell(docsLoc) + " && /usr/bin/printf '%s' " + escapeShell(pdfData) + " > " + escapeShell(targetPath);
     Quickshell.execDetached(["/bin/sh", "-c", cmd]);
     copyStatusMessage = "Saved to " + targetPath;
     Qt.openUrlExternally("file://" + targetPath);

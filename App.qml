@@ -312,7 +312,15 @@ ApplicationWindow {
         var target = getResolvedReportSession();
         if (!target) return;
         var md = Report.generateMarkdownReport(target, flatSteps, ProcessData.questionLibrary);
-        executeShellCommand("printf '%s' " + escapeShell(md) + " | wl-copy || printf '%s' " + escapeShell(md) + " | xclip -selection clipboard");
+        // Direct argv invocation with trusted absolute path (zero shell pipeline)
+        if (typeof Quickshell !== "undefined" && typeof Quickshell.execDetached === "function") {
+            try {
+                Quickshell.execDetached(["/usr/bin/wl-copy", "--", md]);
+                showCanvasToast("Full report copied to clipboard!");
+                return;
+            } catch (e) {}
+        }
+        executeShellCommand("/usr/bin/wl-copy -- " + escapeShell(md) + " || /usr/bin/printf '%s' " + escapeShell(md) + " | /usr/bin/xclip -selection clipboard");
         showCanvasToast("Full report copied to clipboard!");
     }
 
@@ -356,7 +364,7 @@ ApplicationWindow {
         var ts = d.getFullYear() + "" + String(d.getMonth() + 1).padStart(2, '0') + "" + String(d.getDate()).padStart(2, '0') + "_" + String(d.getHours()).padStart(2, '0') + "" + String(d.getMinutes()).padStart(2, '0');
         var filename = "Process4_EternalMoment_" + ts + ".md";
         var docsDir = getDocumentsDirectory();
-        executeShellCommand("mkdir -p " + escapeShell(docsDir) + " && printf '%s' " + escapeShell(md) + " > " + escapeShell(docsDir + "/" + filename));
+        executeShellCommand("/usr/bin/mkdir -p " + escapeShell(docsDir) + " && /usr/bin/printf '%s' " + escapeShell(md) + " > " + escapeShell(docsDir + "/" + filename));
         showCanvasToast("Report saved to " + filename);
     }
 
@@ -369,14 +377,14 @@ ApplicationWindow {
         var filename = "Process4_EternalMoment_" + ts + ".pdf";
         var docsDir = getDocumentsDirectory();
         var targetPath = docsDir + "/" + filename;
-        executeShellCommand("mkdir -p " + escapeShell(docsDir) + " && printf '%s' " + escapeShell(pdfData) + " > " + escapeShell(targetPath));
+        executeShellCommand("/usr/bin/mkdir -p " + escapeShell(docsDir) + " && /usr/bin/printf '%s' " + escapeShell(pdfData) + " > " + escapeShell(targetPath));
         showCanvasToast("PDF saved to " + filename);
         Qt.openUrlExternally("file://" + targetPath);
     }
 
     function captureSpiralSnapshot(callback) {
         var dir = getPicturesDirectory();
-        executeShellCommand("mkdir -p " + escapeShell(dir));
+        executeShellCommand("/usr/bin/mkdir -p " + escapeShell(dir));
 
         var d = new Date();
         var dateStr = d.getFullYear() + "" + String(d.getMonth() + 1).padStart(2, '0') + "" + String(d.getDate()).padStart(2, '0') + "_" + String(d.getHours()).padStart(2, '0') + "" + String(d.getMinutes()).padStart(2, '0') + "" + String(d.getSeconds()).padStart(2, '0');
@@ -410,8 +418,8 @@ ApplicationWindow {
             var insightPart = insight ? "\n" + insight + "\n\n" : "\n";
             shareCaption = "Process #4 Emergence:" + insightPart + "#Ekology #CleanLanguage #EmergentKnowledge #Process4";
 
-            // Pre-load clipboard with image
-            executeShellCommand("wl-copy -t image/png < " + escapeShell(permanentPath));
+            // Pre-load clipboard with image via trusted absolute path
+            executeShellCommand("/usr/bin/wl-copy -t image/png < " + escapeShell(permanentPath));
 
             shareModalVisible = true;
         });
@@ -419,7 +427,7 @@ ApplicationWindow {
 
     function submitPostToX() {
         if (sharePreviewPath) {
-            executeShellCommand("wl-copy -t image/png < " + escapeShell(sharePreviewPath));
+            executeShellCommand("/usr/bin/wl-copy -t image/png < " + escapeShell(sharePreviewPath));
         }
         var tweet = shareCaption.trim();
         var intentUrl = "https://x.com/intent/post?text=" + encodeURIComponent(tweet);
@@ -431,7 +439,7 @@ ApplicationWindow {
 
     function takeCanvasSnapshot() {
         captureSpiralSnapshot(function(tmpPath, permanentPath, filename) {
-            executeShellCommand("wl-copy -t image/png < " + escapeShell(permanentPath));
+            executeShellCommand("/usr/bin/wl-copy -t image/png < " + escapeShell(permanentPath));
             showCanvasToast("Snapshot Saved");
         });
     }
@@ -2667,7 +2675,7 @@ ApplicationWindow {
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
                                 if (sharePreviewPath) {
-                                    executeShellCommand("wl-copy -t image/png < " + escapeShell(sharePreviewPath));
+                                    executeShellCommand("/usr/bin/wl-copy -t image/png < " + escapeShell(sharePreviewPath));
                                     showCanvasToast("📋 Image copied to clipboard!");
                                 }
                             }
