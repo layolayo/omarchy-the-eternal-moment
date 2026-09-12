@@ -1895,51 +1895,30 @@ ApplicationWindow {
 
                 RowLayout {
                     Layout.fillWidth: true
+                    spacing: 16
+
                     Text {
                         text: "Session Record & Emergence Report"
                         color: colForeground
                         font.pixelSize: 24
                         font.bold: true
+                        Layout.fillWidth: true
+                        elide: Text.ElideRight
                     }
-                    Item { Layout.fillWidth: true }
 
                     RowLayout {
-                        spacing: 12
+                        spacing: 10
 
                         Rectangle {
                             height: 38
-                            width: 140
+                            implicitWidth: spiralBtnText.implicitWidth + 28
                             radius: 6
-                            color: Qt.rgba(colGold.r, colGold.g, colGold.b, 0.15)
-                            border.width: 1.5
-                            border.color: colGold
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: "🌀 New Session"
-                                color: colGold
-                                font.bold: true
-                                font.pixelSize: 12
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    startNewSession();
-                                }
-                            }
-                        }
-
-                        Rectangle {
-                            height: 38
-                            width: 150
-                            radius: 6
-                            color: Qt.rgba(colPast.r, colPast.g, colPast.b, 0.15)
+                            color: spiralHover.containsMouse ? Qt.rgba(colPast.r, colPast.g, colPast.b, 0.25) : Qt.rgba(colPast.r, colPast.g, colPast.b, 0.15)
                             border.width: 1.5
                             border.color: colPast
 
                             Text {
+                                id: spiralBtnText
                                 anchors.centerIn: parent
                                 text: "🌀 Explore 3D Spiral"
                                 color: colPast
@@ -1948,7 +1927,9 @@ ApplicationWindow {
                             }
 
                             MouseArea {
+                                id: spiralHover
                                 anchors.fill: parent
+                                hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
                                     activeTab = "chamber";
@@ -1958,94 +1939,140 @@ ApplicationWindow {
 
                         Rectangle {
                             height: 38
-                            width: 150
+                            implicitWidth: newSessionBtnText.implicitWidth + 28
                             radius: 6
-                            color: Qt.rgba(colGold.r, colGold.g, colGold.b, 0.15)
+                            color: newSessionHover.containsMouse ? Qt.rgba(colGold.r, colGold.g, colGold.b, 0.25) : Qt.rgba(colGold.r, colGold.g, colGold.b, 0.15)
                             border.width: 1.5
                             border.color: colGold
 
                             Text {
+                                id: newSessionBtnText
                                 anchors.centerIn: parent
-                                text: "📋 Copy Markdown"
+                                text: "🌀 New Session"
                                 color: colGold
                                 font.bold: true
                                 font.pixelSize: 12
                             }
 
                             MouseArea {
+                                id: newSessionHover
                                 anchors.fill: parent
+                                hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: copyReportToClipboard()
+                                onClicked: {
+                                    startNewSession();
+                                }
                             }
                         }
+                    }
+                }
 
-                        Rectangle {
-                            height: 38
-                            width: 140
-                            radius: 6
-                            color: Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.15)
-                            border.width: 1.5
-                            border.color: colCyan
+                // Export & Sharing Action Toolbar
+                Flow {
+                    Layout.fillWidth: true
+                    spacing: 10
 
-                            Text {
-                                anchors.centerIn: parent
-                                text: "💾 Save to Docs"
-                                color: colCyan
-                                font.bold: true
-                                font.pixelSize: 12
-                            }
+                    Rectangle {
+                        height: 36
+                        implicitWidth: copyBtnText.implicitWidth + 28
+                        radius: 6
+                        color: copyHover.containsMouse ? Qt.rgba(colGold.r, colGold.g, colGold.b, 0.25) : Qt.rgba(colGold.r, colGold.g, colGold.b, 0.15)
+                        border.width: 1.5
+                        border.color: colGold
 
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: exportReportToFile()
-                            }
+                        Text {
+                            id: copyBtnText
+                            anchors.centerIn: parent
+                            text: "📋 Copy Markdown"
+                            color: colGold
+                            font.bold: true
+                            font.pixelSize: 12
                         }
 
-                        Rectangle {
-                            height: 38
-                            width: 130
-                            radius: 6
-                            color: Qt.rgba(colPast.r, colPast.g, colPast.b, 0.15)
-                            border.width: 1.5
-                            border.color: colPast
+                        MouseArea {
+                            id: copyHover
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: copyReportToClipboard()
+                        }
+                    }
 
-                            Text {
-                                anchors.centerIn: parent
-                                text: "📄 Export PDF"
-                                color: colPast
-                                font.bold: true
-                                font.pixelSize: 12
-                            }
+                    Rectangle {
+                        height: 36
+                        implicitWidth: saveBtnText.implicitWidth + 28
+                        radius: 6
+                        color: saveHover.containsMouse ? Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.25) : Qt.rgba(colCyan.r, colCyan.g, colCyan.b, 0.15)
+                        border.width: 1.5
+                        border.color: colCyan
 
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: exportPdfToFile()
-                            }
+                        Text {
+                            id: saveBtnText
+                            anchors.centerIn: parent
+                            text: "💾 Save to Docs"
+                            color: colCyan
+                            font.bold: true
+                            font.pixelSize: 12
                         }
 
-                        Rectangle {
-                            height: 38
-                            width: 130
-                            radius: 6
-                            color: Qt.rgba(56/255, 189/255, 248/255, 0.15)
-                            border.width: 1.5
-                            border.color: "#38bdf8"
+                        MouseArea {
+                            id: saveHover
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: exportReportToFile()
+                        }
+                    }
 
-                            Text {
-                                anchors.centerIn: parent
-                                text: "🐦 Share on X"
-                                color: "#38bdf8"
-                                font.bold: true
-                                font.pixelSize: 12
-                            }
+                    Rectangle {
+                        height: 36
+                        implicitWidth: pdfBtnText.implicitWidth + 28
+                        radius: 6
+                        color: pdfHover.containsMouse ? Qt.rgba(colPast.r, colPast.g, colPast.b, 0.25) : Qt.rgba(colPast.r, colPast.g, colPast.b, 0.15)
+                        border.width: 1.5
+                        border.color: colPast
 
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: shareHighlightToX()
-                            }
+                        Text {
+                            id: pdfBtnText
+                            anchors.centerIn: parent
+                            text: "📄 Export PDF"
+                            color: colPast
+                            font.bold: true
+                            font.pixelSize: 12
+                        }
+
+                        MouseArea {
+                            id: pdfHover
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: exportPdfToFile()
+                        }
+                    }
+
+                    Rectangle {
+                        height: 36
+                        implicitWidth: shareBtnText.implicitWidth + 28
+                        radius: 6
+                        color: shareHover.containsMouse ? Qt.rgba(56/255, 189/255, 248/255, 0.25) : Qt.rgba(56/255, 189/255, 248/255, 0.15)
+                        border.width: 1.5
+                        border.color: "#38bdf8"
+
+                        Text {
+                            id: shareBtnText
+                            anchors.centerIn: parent
+                            text: "🐦 Share on X"
+                            color: "#38bdf8"
+                            font.bold: true
+                            font.pixelSize: 12
+                        }
+
+                        MouseArea {
+                            id: shareHover
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: shareHighlightToX()
                         }
                     }
                 }

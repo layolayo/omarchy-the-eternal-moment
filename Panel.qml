@@ -995,13 +995,14 @@ Panel {
             font.bold: true
           }
 
-          // Action Toolbar
-          Row {
+          // Action Toolbar (2x2 responsive grid)
+          Grid {
             width: parent.width
+            columns: 2
             spacing: Style.space(8)
 
             Button {
-              width: (parent.width - Style.space(24)) / 4
+              width: (parent.width - Style.space(8)) / 2
               text: "📋 Copy Markdown"
               accent: root.goldColor
               bordered: true
@@ -1009,7 +1010,7 @@ Panel {
             }
 
             Button {
-              width: (parent.width - Style.space(24)) / 4
+              width: (parent.width - Style.space(8)) / 2
               text: "💾 Save to Docs"
               accent: root.cyanColor
               bordered: true
@@ -1017,7 +1018,7 @@ Panel {
             }
 
             Button {
-              width: (parent.width - Style.space(24)) / 4
+              width: (parent.width - Style.space(8)) / 2
               text: "📄 Export PDF"
               accent: root.pastColor
               bordered: true
@@ -1025,7 +1026,7 @@ Panel {
             }
 
             Button {
-              width: (parent.width - Style.space(24)) / 4
+              width: (parent.width - Style.space(8)) / 2
               text: "🐦 Share on X"
               accent: "#38bdf8"
               bordered: true
