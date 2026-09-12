@@ -227,11 +227,15 @@ Panel {
     return false;
   }
 
+  function escapeShell(str) {
+    return "'" + String(str).replace(/'/g, "'\\''") + "'";
+  }
+
   function copyReportText() {
     var target = viewingSession || Database.loadSession(activeSessionId);
     if (!target) return;
     var md = Report.generateMarkdownReport(target, flatSteps, ProcessData.questionLibrary);
-    Quickshell.execDetached(["/bin/sh", "-c", "export PATH=/usr/bin:/bin; printf %s " + Util.shellQuote(md) + " | wl-copy"]);
+    Quickshell.execDetached(["/bin/sh", "-c", "export PATH=/usr/bin:/bin; printf '%s' " + escapeShell(md) + " | wl-copy"]);
     copyStatusMessage = "Report copied to clipboard!";
   }
 
@@ -242,12 +246,20 @@ Panel {
     var d = new Date();
     var ts = d.getFullYear() + "" + String(d.getMonth() + 1).padStart(2, '0') + "" + String(d.getDate()).padStart(2, '0') + "_" + String(d.getHours()).padStart(2, '0') + "" + String(d.getMinutes()).padStart(2, '0');
     var filename = "Process4_EternalMoment_" + ts + ".md";
-    var docsLoc = String(StandardPaths.writableLocation(StandardPaths.DocumentsLocation)).replace(/^file:\/\//, "");
-    if (!docsLoc || docsLoc === "undefined") {
-      docsLoc = String(StandardPaths.writableLocation(StandardPaths.HomeLocation)).replace(/^file:\/\//, "") + "/Documents";
+    var docsLoc = "";
+    try {
+      docsLoc = decodeURIComponent(String(StandardPaths.writableLocation(StandardPaths.DocumentsLocation)).replace(/^file:\/\//, ""));
+    } catch (e) {}
+    if (!docsLoc || docsLoc === "undefined" || docsLoc === "null") {
+      try {
+        docsLoc = decodeURIComponent(String(StandardPaths.writableLocation(StandardPaths.HomeLocation)).replace(/^file:\/\//, "")) + "/Documents";
+      } catch (e2) {}
+    }
+    if (!docsLoc || docsLoc === "undefined" || docsLoc === "null" || docsLoc === "/Documents") {
+      docsLoc = "/tmp";
     }
     var targetPath = docsLoc + "/" + filename;
-    var cmd = "export PATH=/usr/bin:/bin; mkdir -p '" + docsLoc.replace(/'/g, "'\\''") + "' && cat << 'EOF' > '" + targetPath.replace(/'/g, "'\\''") + "'\n" + md + "\nEOF";
+    var cmd = "export PATH=/usr/bin:/bin; mkdir -p " + escapeShell(docsLoc) + " && printf '%s' " + escapeShell(md) + " > " + escapeShell(targetPath);
     Quickshell.execDetached(["/bin/sh", "-c", cmd]);
     copyStatusMessage = "Saved to " + targetPath;
   }

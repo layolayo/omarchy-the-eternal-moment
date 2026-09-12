@@ -279,22 +279,38 @@ ApplicationWindow {
         var target = viewingSession || Database.loadSession(activeSessionId);
         if (!target) return;
         var md = Report.generateMarkdownReport(target, flatSteps, ProcessData.questionLibrary);
-        executeShellCommand("printf %s " + escapeShell(md) + " | wl-copy || printf %s " + escapeShell(md) + " | xclip -selection clipboard");
+        executeShellCommand("printf '%s' " + escapeShell(md) + " | wl-copy || printf '%s' " + escapeShell(md) + " | xclip -selection clipboard");
         showCanvasToast("Full report copied to clipboard!");
     }
 
     function getPicturesDirectory() {
-        var loc = String(StandardPaths.writableLocation(StandardPaths.PicturesLocation)).replace(/^file:\/\//, "");
-        if (!loc || loc === "undefined") {
-            loc = String(StandardPaths.writableLocation(StandardPaths.HomeLocation)).replace(/^file:\/\//, "") + "/Pictures";
+        var loc = "";
+        try {
+            loc = decodeURIComponent(String(StandardPaths.writableLocation(StandardPaths.PicturesLocation)).replace(/^file:\/\//, ""));
+        } catch (e) {}
+        if (!loc || loc === "undefined" || loc === "null") {
+            try {
+                loc = decodeURIComponent(String(StandardPaths.writableLocation(StandardPaths.HomeLocation)).replace(/^file:\/\//, "")) + "/Pictures";
+            } catch (e2) {}
+        }
+        if (!loc || loc === "undefined" || loc === "null" || loc === "/Pictures") {
+            loc = "/tmp";
         }
         return loc + "/TheEternalMoment";
     }
 
     function getDocumentsDirectory() {
-        var loc = String(StandardPaths.writableLocation(StandardPaths.DocumentsLocation)).replace(/^file:\/\//, "");
-        if (!loc || loc === "undefined") {
-            loc = String(StandardPaths.writableLocation(StandardPaths.HomeLocation)).replace(/^file:\/\//, "") + "/Documents";
+        var loc = "";
+        try {
+            loc = decodeURIComponent(String(StandardPaths.writableLocation(StandardPaths.DocumentsLocation)).replace(/^file:\/\//, ""));
+        } catch (e) {}
+        if (!loc || loc === "undefined" || loc === "null") {
+            try {
+                loc = decodeURIComponent(String(StandardPaths.writableLocation(StandardPaths.HomeLocation)).replace(/^file:\/\//, "")) + "/Documents";
+            } catch (e2) {}
+        }
+        if (!loc || loc === "undefined" || loc === "null" || loc === "/Documents") {
+            loc = "/tmp";
         }
         return loc;
     }
@@ -307,7 +323,7 @@ ApplicationWindow {
         var ts = d.getFullYear() + "" + String(d.getMonth() + 1).padStart(2, '0') + "" + String(d.getDate()).padStart(2, '0') + "_" + String(d.getHours()).padStart(2, '0') + "" + String(d.getMinutes()).padStart(2, '0');
         var filename = "Process4_EternalMoment_" + ts + ".md";
         var docsDir = getDocumentsDirectory();
-        executeShellCommand("mkdir -p " + escapeShell(docsDir) + " && cat << 'EOF' > " + escapeShell(docsDir + "/" + filename) + "\n" + md + "\nEOF");
+        executeShellCommand("mkdir -p " + escapeShell(docsDir) + " && printf '%s' " + escapeShell(md) + " > " + escapeShell(docsDir + "/" + filename));
         showCanvasToast("Report saved to " + filename);
     }
 
@@ -319,8 +335,11 @@ ApplicationWindow {
         var dateStr = d.getFullYear() + "" + String(d.getMonth() + 1).padStart(2, '0') + "" + String(d.getDate()).padStart(2, '0') + "_" + String(d.getHours()).padStart(2, '0') + "" + String(d.getMinutes()).padStart(2, '0') + "" + String(d.getSeconds()).padStart(2, '0');
         var filename = "eternity-" + dateStr + ".png";
         var permanentPath = dir + "/" + filename;
-        var tmpLoc = String(StandardPaths.writableLocation(StandardPaths.TempLocation)).replace(/^file:\/\//, "");
-        if (!tmpLoc || tmpLoc === "undefined") tmpLoc = "/tmp";
+        var tmpLoc = "";
+        try {
+            tmpLoc = decodeURIComponent(String(StandardPaths.writableLocation(StandardPaths.TempLocation)).replace(/^file:\/\//, ""));
+        } catch (e) {}
+        if (!tmpLoc || tmpLoc === "undefined" || tmpLoc === "null") tmpLoc = "/tmp";
         var tmpPath = tmpLoc + "/eternal_spiral_share.png";
 
         spiralCanvas.grabToImage(function(result) {
